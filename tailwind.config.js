@@ -9,8 +9,15 @@ export default {
       colors: {
         'primary': '#34495E',
         'secondary': '#6E7AD9',
-      }
+      },
+      transform: {
+        'rotate-y-180': 'rotateY(180deg)',
+      },
+      transitionProperty: {
+        'transform': 'transform',
+      },
     }
   },
+  variants: {},
   plugins: [],
 }
