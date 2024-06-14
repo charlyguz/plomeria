@@ -83,15 +83,6 @@ const DashboardCliente = () => {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-gray-700">Materiales</label>
-                    <textarea
-                      className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                      rows="3"
-                      readOnly
-                      value="Materiales requeridos serán mostrados aquí."
-                    />
-                  </div>
-                  <div>
                     <label className="block text-gray-700">Calle</label>
                     <input
                       className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
