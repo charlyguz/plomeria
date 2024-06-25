@@ -7,13 +7,15 @@ import {
 import axios from "axios";
 import { useNavigate } from 'react-router-dom';
 
-const DashboardCliente = () => {
+const DashboardCliente = ({ userId }) => {
   const [flippedSolicitar, setFlippedSolicitar] = useState(false);
   const [flippedServicioActual, setFlippedServicioActual] = useState(false);
   const [servicios, setServicios] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [userMenuVisible, setUserMenuVisible] = useState(false);
+  const [servicioActual, setServicioActual] = useState(null);
+  const [calificacion, setCalificacion] = useState('');
   const navigate = useNavigate();
 
   const handleSolicitarServicio = () => {
@@ -24,7 +26,8 @@ const DashboardCliente = () => {
     setFlippedSolicitar(false);
   };
 
-  const handleServicioActual = () => {
+  const handleServicioActual = (servicio) => {
+    setServicioActual(servicio);
     setFlippedServicioActual(true);
   };
 
@@ -63,15 +66,24 @@ const DashboardCliente = () => {
 
   const handleSolicitarServicioSubmit = async (e) => {
     e.preventDefault();
+  
     try {
-      const response = await axios.post(
-        "http://localhost:3002/api/servicios", // Corregir la URL
-        formData,
-        {
-          withCredentials: true,
+      const response = await axios.post('http://localhost:3002/api/servicios', {
+        TipoServicio: formData.TipoServicio,
+        Direccion: {
+          Calle: formData.Calle,
+          NumeroExterior: formData.NumeroExterior,
+          NumeroInterior: formData.NumeroInterior,
+          Colonia: formData.Colonia,
+          Alcaldia: formData.Alcaldia,
+          CodigoPostal: formData.CodigoPostal
         }
-      );
+      }, {
+        withCredentials: true
+      });
+  
       console.log(response.data);
+      // Clear the form and show a success message
       setFormData({
         TipoServicio: "",
         Calle: "",
@@ -79,9 +91,12 @@ const DashboardCliente = () => {
         NumeroInterior: "",
         Colonia: "",
         Alcaldia: "",
-        CodigoPostal: "",
+        CodigoPostal: ""
       });
+      setFormErrors({});
       setFlippedSolicitar(false);
+      alert("Servicio solicitado con éxito. Un técnico ha sido asignado.");
+      fetchServices(); // Refresh the list of services
     } catch (error) {
       console.error("Error submitting service request:", error);
       if (error.response && error.response.data && error.response.data.errors) {
@@ -91,25 +106,47 @@ const DashboardCliente = () => {
       }
     }
   };
+  
+  const handleCalificarTecnico = async () => {
+    try {
+      await axios.put(`http://localhost:3002/api/servicios/${servicioActual.ID_Servicio}`, {
+        estado: 'Completado',
+        calificacion: calificacion
+      }, {
+        withCredentials: true
+      });
 
-  // Esta función trae todos los servicios de la base de datos para que puedan presentarlos con HTML
-  useEffect(() => {
-    const fetchServices = async () => {
-      try {
-        const response = await axios.get('http://localhost:3002/api/servicios', { // Corregir la URL
-          withCredentials: true  
-        });
-        setServicios(response.data);
-        setLoading(false);
-      } catch (err) {
-        console.error('Error fetching services:', err);
-        setError('Failed to fetch services');
-        setLoading(false);
+      setFlippedServicioActual(false);
+      setCalificacion('');
+      fetchServices();
+      alert('Servicio completado y técnico calificado con éxito.');
+    } catch (error) {
+      console.error('Error updating service:', error);
+      alert('Error al calificar el técnico.');
+    }
+  };
+
+  const fetchServices = async () => {
+    try {
+      const response = await axios.get(`http://localhost:3002/api/servicios/${userId}`, { withCredentials: true });
+      setServicios(response.data);
+      setLoading(false);
+      const currentService = response.data.find(servicio => servicio.Estado !== 'Completado');
+      if (currentService) {
+        setServicioActual(currentService);
+      } else {
+        setServicioActual(null);
       }
-    };
+    } catch (err) {
+      console.error('Error fetching services:', err);
+      setError('Failed to fetch services');
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchServices();
-  }, []);
+  }, [userId]);
 
   return (
     <div className="flex min-h-screen">
@@ -133,7 +170,7 @@ const DashboardCliente = () => {
           </button>
           <button
             className="flex items-center space-x-4 w-full text-white justify-center"
-            onClick={handleServicioActual}
+            onClick={() => handleServicioActual(servicios.find(servicio => servicio.Estado !== 'Completado'))}
           >
             <div className="bg-[#6E7AD9] p-4 rounded-full flex items-center justify-center">
               <WrenchScrewdriverIcon className="h-8 w-8 text-white" />
@@ -213,7 +250,6 @@ const DashboardCliente = () => {
                       onChange={handleInputChange}
                     >
                       <option value="">Seleccione un servicio</option>{" "}
-                      {/* Added default option */}
                       <option value="Mantenimiento preventivo y lavado de tinacos">
                         Mantenimiento preventivo y lavado de tinacos
                       </option>
@@ -332,7 +368,7 @@ const DashboardCliente = () => {
                 <button
                   className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline mb-4"
                   type="button"
-                  onClick={handleServicioActual}
+                  onClick={() => handleServicioActual(servicios.find(servicio => servicio.Estado !== 'Completado'))}
                 >
                   Servicio Actual
                 </button>
@@ -343,9 +379,36 @@ const DashboardCliente = () => {
                   flippedServicioActual ? "flex" : "hidden"
                 } flex-col items-center justify-center`}
               >
-                <h2 className="text-xl font-bold mb-4">
-                  No hay servicios actuales en curso
-                </h2>
+                {servicioActual ? (
+                  <>
+                    <h2 className="text-xl font-bold mb-4">Servicio Actual</h2>
+                    <p>Tipo de Servicio: {servicioActual.TipoServicio}</p>
+                    <p>Estado: {servicioActual.Estado}</p>
+                    {servicioActual.Estado === 'Completado' && (
+                      <div className="flex flex-col items-center mt-4">
+                        <label className="block text-gray-700">Calificación del Técnico</label>
+                        <input
+                          className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                          type="number"
+                          min="1"
+                          max="5"
+                          step="1"
+                          value={calificacion}
+                          onChange={(e) => setCalificacion(e.target.value)}
+                          placeholder="Calificación (1-5)"
+                        />
+                        <button
+                          className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline mt-4"
+                          onClick={handleCalificarTecnico}
+                        >
+                          Calificar y Completar Servicio
+                        </button>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <h2 className="text-xl font-bold mb-4">No hay servicios actuales en curso</h2>
+                )}
                 <button
                   className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline mt-2"
                   type="button"

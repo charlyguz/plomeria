@@ -6,22 +6,22 @@ const Register = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [errors, setErrors] = useState({});
+  const [successMessage, setSuccessMessage] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Validation (add more robust validation if needed)
+    // Validation
     if (password !== confirmPassword) {
       setErrors({ confirmPassword: 'Passwords do not match' });
       return;
     }
 
     try {
-      const response = await axios.post('http://localhost:3002/persona', {
+      const response = await axios.post('http://localhost:3002/api/persona', {
         CorreoElectronico: email,
         Contrasena: password,
         Rol: 'Cliente'
-        // ... other fields as needed
       },{
         withCredentials: true
       });
@@ -32,19 +32,19 @@ const Register = () => {
       setPassword('');
       setConfirmPassword('');
       setErrors({});
+      setSuccessMessage('Registro exitoso. Por favor, inicie sesión.');
     } catch (error) {
       console.error('Error registering:', error);
       if (error.response && error.response.data && error.response.data.errors) {
         setErrors(error.response.data.errors); // Set errors from backend
       } else {
-        // Set a generic error message if needed
         setErrors({ general: 'An error occurred during registration.' });
       }
     }
   };
 
   return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-100 relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center bg-gray-100 relative overflow-hidden">
       <div className="absolute inset-0 bg-black">
         <div className="relative w-full h-full">
           <div className="relative top-16">
@@ -55,8 +55,6 @@ const Register = () => {
       </div>
       <div className="bg-white shadow-xl rounded-lg border-2 border-gray-600 p-8 max-w-md w-full z-30 flex items-center justify-center">
         <form className="w-full" onSubmit={handleSubmit}>
-          {/* ... (form title) */}
-
           {/* Email Input */}
           <div className="mb-4">
             <label htmlFor="email" className="block text-gray-700 text-sm font-bold mb-2">Correo Electrónico</label>
@@ -107,7 +105,16 @@ const Register = () => {
             >
               Registrarse
             </button>
+            <button 
+              className="ml-4 bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+              onClick={() => window.location.href = '/login'}
+            >
+              Ir a Iniciar Sesión
+            </button>
           </div>
+
+          {/* Success Message */}
+          {successMessage && <p className="text-green-500 mt-4">{successMessage}</p>}
 
           {/* General Error Message */}
           {errors.general && <p className="error-message">{errors.general}</p>}

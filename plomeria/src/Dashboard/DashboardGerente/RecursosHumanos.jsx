@@ -1,14 +1,28 @@
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 
 const RecursosHumanos = () => {
   const [showForm, setShowForm] = useState(false);
   const [tecnicos, setTecnicos] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [formData, setFormData] = useState({
+    Nombre: '',
+    CorreoElectronico: '',
+    Contrasena: '',
+    Calle: '',
+    NumeroExterior: '',
+    NumeroInterior: '',
+    Colonia: '',
+    Alcaldia: '',
+    CodigoPostal: '',
+  });
 
   useEffect(() => {
     const fetchTecnicos = async () => {
       try {
-        const tecnicosResponse = await axios.get('http://localhost:3002/tecnicos', { withCredentials: true }); // Assuming credentials are needed
-        setTecnicos(tecnicosResponse.data);
+        const response = await axios.get('http://localhost:3002/api/tecnicos', { withCredentials: true });
+        setTecnicos(response.data);
         setLoading(false);
       } catch (err) {
         console.error('Error fetching data:', err);
@@ -17,26 +31,60 @@ const RecursosHumanos = () => {
       }
     };
 
-    fetchTecnicos(); 
+    fetchTecnicos();
   }, []);
 
   const handleAddEmployeeClick = () => {
     setShowForm(true);
   };
 
-  const handleFormSubmit = (event) => {
+  const handleFormSubmit = async (event) => {
     event.preventDefault();
-    // Aquí manejar la lógica para enviar el formulario al backend
-    setShowForm(false);
+    try {
+      const response = await axios.post('http://localhost:3002/api/persona', {
+        ...formData,
+        Rol: 'Tecnico'
+      }, { withCredentials: true });
+
+      setTecnicos([...tecnicos, response.data]);
+      setShowForm(false);
+      setFormData({
+        Nombre: '',
+        CorreoElectronico: '',
+        Contrasena: '',
+        Calle: '',
+        NumeroExterior: '',
+        NumeroInterior: '',
+        Colonia: '',
+        Alcaldia: '',
+        CodigoPostal: '',
+      });
+    } catch (err) {
+      console.error('Error adding technician:', err);
+      setError('Failed to add technician');
+    }
   };
 
   const handleCancelClick = () => {
     setShowForm(false);
   };
 
-  const handleDeleteEmployee = (employeeId) => {
-    // Aquí manejar la lógica para eliminar al empleado del backend
-    console.log(`Eliminar empleado con ID: ${employeeId}`);
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData({
+      ...formData,
+      [name]: value,
+    });
+  };
+
+  const handleDeleteEmployee = async (employeeId) => {
+    try {
+      await axios.delete(`http://localhost:3002/api/tecnicos/${employeeId}`, { withCredentials: true });
+      setTecnicos(tecnicos.filter(tecnico => tecnico.ID_Persona !== employeeId));
+    } catch (err) {
+      console.error('Error deleting technician:', err);
+      setError('Failed to delete technician');
+    }
   };
 
   return (
@@ -60,6 +108,9 @@ const RecursosHumanos = () => {
               className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
               type="text"
               placeholder="Nombre"
+              name="Nombre"
+              value={formData.Nombre}
+              onChange={handleInputChange}
               required
             />
           </div>
@@ -69,6 +120,9 @@ const RecursosHumanos = () => {
               className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
               type="email"
               placeholder="Correo Electrónico"
+              name="CorreoElectronico"
+              value={formData.CorreoElectronico}
+              onChange={handleInputChange}
               required
             />
           </div>
@@ -78,6 +132,9 @@ const RecursosHumanos = () => {
               className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
               type="password"
               placeholder="Contraseña"
+              name="Contrasena"
+              value={formData.Contrasena}
+              onChange={handleInputChange}
               required
             />
           </div>
@@ -87,6 +144,9 @@ const RecursosHumanos = () => {
               className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
               type="text"
               placeholder="Calle"
+              name="Calle"
+              value={formData.Calle}
+              onChange={handleInputChange}
               required
             />
           </div>
@@ -97,6 +157,9 @@ const RecursosHumanos = () => {
                 className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
                 type="text"
                 placeholder="Número Exterior"
+                name="NumeroExterior"
+                value={formData.NumeroExterior}
+                onChange={handleInputChange}
                 required
               />
             </div>
@@ -106,6 +169,9 @@ const RecursosHumanos = () => {
                 className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
                 type="text"
                 placeholder="Número Interior"
+                name="NumeroInterior"
+                value={formData.NumeroInterior}
+                onChange={handleInputChange}
               />
             </div>
           </div>
@@ -115,6 +181,9 @@ const RecursosHumanos = () => {
               className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
               type="text"
               placeholder="Colonia"
+              name="Colonia"
+              value={formData.Colonia}
+              onChange={handleInputChange}
               required
             />
           </div>
@@ -124,6 +193,9 @@ const RecursosHumanos = () => {
               className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
               type="text"
               placeholder="Alcaldía"
+              name="Alcaldia"
+              value={formData.Alcaldia}
+              onChange={handleInputChange}
               required
             />
           </div>
@@ -133,19 +205,11 @@ const RecursosHumanos = () => {
               className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
               type="text"
               placeholder="Código Postal"
+              name="CodigoPostal"
+              value={formData.CodigoPostal}
+              onChange={handleInputChange}
               required
             />
-          </div>
-          <div>
-            <label className="block text-gray-700">Servicios Ofrecidos</label>
-            <select
-              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-              required
-            >
-              <option>Mantenimiento preventivo y lavado de tinacos</option>
-              <option>Reparación de fuga de agua</option>
-              <option>Instalación de calentador de agua</option>
-            </select>
           </div>
           <div className="flex space-x-4">
             <button 
@@ -168,36 +232,25 @@ const RecursosHumanos = () => {
       <div className="mt-8">
         <h2 className="text-xl font-bold mb-4">Lista de Empleados</h2>
         <div>
-          {/* Aquí se mostrará la lista de empleados y sus estadísticas */}
-          <ul className="list-disc pl-5 space-y-2">
-            <li>
-              Empleado 1 - Tarea actual: Ninguna
-              <button 
-                onClick={() => handleDeleteEmployee(1)}
-                className="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded ml-4 focus:outline-none focus:shadow-outline"
-              >
-                Despedir
-              </button>
-            </li>
-            <li>
-              Empleado 2 - Tarea actual: En proceso
-              <button 
-                onClick={() => handleDeleteEmployee(2)}
-                className="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded ml-4 focus:outline-none focus:shadow-outline"
-              >
-                Despedir
-              </button>
-            </li>
-            <li>
-              Empleado 3 - Tarea actual: Completada
-              <button 
-                onClick={() => handleDeleteEmployee(3)}
-                className="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded ml-4 focus:outline-none focus:shadow-outline"
-              >
-                Despedir
-              </button>
-            </li>
-          </ul>
+          {loading ? (
+            <p>Loading...</p>
+          ) : error ? (
+            <p>{error}</p>
+          ) : (
+            <ul className="list-disc pl-5 space-y-2">
+              {tecnicos.map(tecnico => (
+                <li key={tecnico.ID_Persona}>
+                  {tecnico.Nombre} - Tarea actual: {tecnico.TareaActual || 'Disponible'} - Disponible: {tecnico.Disponible ? 'Sí' : 'No'}
+                  <button 
+                    onClick={() => handleDeleteEmployee(tecnico.ID_Persona)}
+                    className="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded ml-4 focus:outline-none focus:shadow-outline"
+                  >
+                    Despedir
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       </div>
     </div>

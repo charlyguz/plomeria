@@ -1,10 +1,27 @@
-import { Link, Route, Routes } from 'react-router-dom';
+import { Link, Route, Routes, useNavigate } from 'react-router-dom';
 import { BellAlertIcon, UserCircleIcon, PresentationChartBarIcon, InboxIcon, UserGroupIcon } from '@heroicons/react/24/solid';
 import RecursosHumanos from './RecursosHumanos';
 import Inventario from './Inventario';
 import Estadisticas from './Estadisticas';
+import axios from 'axios';
+import { useState } from 'react';
+import GraficoBarras from './GraficoBarras';
+import GraficoInventario from './GraficoInventario';
+import GraficoCostos from './GraficoCostos'; // Importa el nuevo componente de gráfico
 
 const DashboardGerente = () => {
+  const [userMenuVisible, setUserMenuVisible] = useState(false);
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    try {
+      await axios.post('http://localhost:3002/api/logout', {}, { withCredentials: true });
+      navigate('/login');
+    } catch (error) {
+      console.error('Error during logout:', error);
+    }
+  };
+
   return (
     <div className="flex min-h-screen">
       {/* Barra lateral */}
@@ -39,9 +56,21 @@ const DashboardGerente = () => {
             <button>
               <BellAlertIcon className="h-8 w-8 text-gray-700"/>
             </button>
-            <button>
-              <UserCircleIcon className='h-8 w-8 text-gray-700'/>
-            </button>
+            <div className="relative">
+              <button onClick={() => setUserMenuVisible(!userMenuVisible)}>
+                <UserCircleIcon className='h-8 w-8 text-gray-700'/>
+              </button>
+              {userMenuVisible && (
+                <div className="absolute right-0 mt-2 w-48 bg-white border rounded-lg shadow-lg hover:bg-red-500 py-1 z-40">
+                  <button
+                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-red-500 hover:rounded-lg w-full text-left"
+                    onClick={handleLogout}
+                  >
+                    Cerrar sesión
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
         <Routes>
@@ -53,19 +82,17 @@ const DashboardGerente = () => {
               {/* Recuadro de recursos humanos */}
               <div className="bg-white shadow-lg rounded-lg p-4">
                 <h2 className="text-xl font-bold mb-4">Recursos humanos</h2>
-                <img src="/path/to/bar_chart.png" alt="Gráfico de barras" />
+                <GraficoBarras /> {/* Coloca el componente de gráfico aquí */}
               </div>
               {/* Recuadro de costos */}
               <div className="bg-white shadow-lg rounded-lg p-4">
                 <h2 className="text-xl font-bold mb-4">Costos</h2>
-                <div className="text-3xl font-bold">$88,099 mx</div>
-                <div className="text-green-500 text-xl">23% ↑</div>
-                <img src="/path/to/line_chart.png" alt="Gráfico de líneas" />
+                <GraficoCostos /> {/* Coloca el componente de gráfico aquí */}
               </div>
               {/* Recuadro de inventario */}
               <div className="col-span-2 bg-white shadow-lg rounded-lg p-4">
                 <h2 className="text-xl font-bold mb-4">Inventario</h2>
-                <img src="/path/to/line_chart.png" alt="Gráfico de líneas" />
+                <GraficoInventario /> {/* Coloca el componente de gráfico aquí */}
               </div>
             </div>
           } />
