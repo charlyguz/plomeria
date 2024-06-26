@@ -41,7 +41,10 @@ CREATE TABLE IF NOT EXISTS `detalleserviciomaterial` (
   CONSTRAINT `DetalleServicioMaterial_ibfk_2` FOREIGN KEY (`ID_Material`) REFERENCES `material` (`ID_Material`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
 
--- Dumping data for table plomeria.detalleserviciomaterial: ~0 rows (approximately)
+-- Dumping data for table plomeria.detalleserviciomaterial: ~2 rows (approximately)
+INSERT INTO `detalleserviciomaterial` (`ID_Servicio`, `ID_Material`, `CantidadUtilizada`) VALUES
+	(3, 11, 2),
+	(4, 12, 1);
 
 -- Dumping structure for table plomeria.direccion
 CREATE TABLE IF NOT EXISTS `direccion` (
@@ -53,25 +56,17 @@ CREATE TABLE IF NOT EXISTS `direccion` (
   `Alcaldia` varchar(255) NOT NULL,
   `CodigoPostal` varchar(20) NOT NULL,
   PRIMARY KEY (`ID_Direccion`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- Dumping data for table plomeria.direccion: ~0 rows (approximately)
-
--- Dumping structure for table plomeria.entregamaterial
-CREATE TABLE IF NOT EXISTS `entregamaterial` (
-  `ID_Entrega` int(11) NOT NULL AUTO_INCREMENT,
-  `ID_Material` int(11) NOT NULL,
-  `Cantidad` int(11) NOT NULL,
-  `FechaHora` datetime NOT NULL,
-  `ID_Centro` int(11) DEFAULT NULL,
-  PRIMARY KEY (`ID_Entrega`),
-  KEY `ID_Material` (`ID_Material`),
-  KEY `ID_Centro` (`ID_Centro`),
-  CONSTRAINT `EntregaMaterial_ibfk_1` FOREIGN KEY (`ID_Material`) REFERENCES `material` (`ID_Material`),
-  CONSTRAINT `EntregaMaterial_ibfk_2` FOREIGN KEY (`ID_Centro`) REFERENCES `centromateriales` (`ID_Centro`)
-) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
-
--- Dumping data for table plomeria.entregamaterial: ~0 rows (approximately)
+-- Dumping data for table plomeria.direccion: ~6 rows (approximately)
+INSERT INTO `direccion` (`ID_Direccion`, `Calle`, `NumeroExterior`, `NumeroInterior`, `Colonia`, `Alcaldia`, `CodigoPostal`) VALUES
+	(1, 'Calle 1', '123', 'A', 'Colonia 1', 'Alcaldia 1', '12345'),
+	(2, 'Calle 2', '456', 'B', 'Colonia 2', 'Alcaldia 2', '67890'),
+	(3, 'Calle 1', '123', 'A', 'Colonia 1', 'Alcaldia 1', '12345'),
+	(4, 'Calle 2', '456', 'B', 'Colonia 2', 'Alcaldia 2', '67890'),
+	(5, 'calle inventada ', '123', '123', 'del valle ', 'gam ', '07100'),
+	(6, 'calle inventada ', '123', '123', 'cuautepec', 'gam ', '07100'),
+	(7, 'calle inventada ', '123', '123', 'cuautepec', 'gam ', '07100');
 
 -- Dumping structure for table plomeria.evidencia
 CREATE TABLE IF NOT EXISTS `evidencia` (
@@ -82,7 +77,7 @@ CREATE TABLE IF NOT EXISTS `evidencia` (
   PRIMARY KEY (`ID_Evidencia`),
   KEY `ID_Servicio` (`ID_Servicio`),
   CONSTRAINT `evidencia_ibfk_1` FOREIGN KEY (`ID_Servicio`) REFERENCES `servicio` (`ID_Servicio`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- Dumping data for table plomeria.evidencia: ~0 rows (approximately)
 
@@ -118,13 +113,15 @@ CREATE TABLE IF NOT EXISTS `persona` (
   `Disponible` tinyint(1) DEFAULT 1,
   PRIMARY KEY (`ID_Persona`),
   UNIQUE KEY `CorreoElectronico` (`CorreoElectronico`)
-) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- Dumping data for table plomeria.persona: ~0 rows (approximately)
+-- Dumping data for table plomeria.persona: ~5 rows (approximately)
 INSERT INTO `persona` (`ID_Persona`, `CorreoElectronico`, `Contrasena`, `Nombre`, `Rol`, `Disponible`) VALUES
 	(2, 'admin@a', '$2b$10$sLrfWi5kc.iWVYO6Yow2Ae2T84oVRyoN4RMAztDHukjnm/R6ygco2', 'Admin', 'Gerente', 1),
-	(4, 'tecnico1@test', '$2b$10$SX4KuF.jGhagPJkaZkie.u8LSGMBdjC34sppe8aD4.xy2jYNggIe2', 'tecnico 1', 'Tecnico', 1),
-	(5, 'tecnico2@test', '$2b$10$4mN37UjMix6.fSXjMe1HA.fTbuZ60pZbOLPQRdOw4jq12JRcPq8Ji', 'tecnico 2', 'Tecnico', 1);
+	(4, 'tecnico1@test', '$2b$10$SX4KuF.jGhagPJkaZkie.u8LSGMBdjC34sppe8aD4.xy2jYNggIe2', 'tecnico 1', 'Tecnico', 0),
+	(5, 'tecnico2@test', '$2b$10$4mN37UjMix6.fSXjMe1HA.fTbuZ60pZbOLPQRdOw4jq12JRcPq8Ji', 'tecnico 2', 'Tecnico', 1),
+	(6, 'cliente1@test.com', '$2b$10$4mN37UjMix6.fSXjMe1HA.fTbuZ60pZbOLPQRdOw4jq12JRcPq8Ji', 'Cliente 1', 'Cliente', 1),
+	(7, 'cliente2@test.com', '$2b$10$4mN37UjMix6.fSXjMe1HA.fTbuZ60pZbOLPQRdOw4jq12JRcPq8Ji', 'Cliente 2', 'Cliente', 1);
 
 -- Dumping structure for table plomeria.servicio
 CREATE TABLE IF NOT EXISTS `servicio` (
@@ -138,6 +135,9 @@ CREATE TABLE IF NOT EXISTS `servicio` (
   `FechaSolicitud` datetime NOT NULL,
   `FechaCompletado` datetime DEFAULT NULL,
   `Calificacion` int(1) DEFAULT NULL CHECK (`Calificacion` between 1 and 5),
+  `recogerMateriales` tinyint(1) DEFAULT 0,
+  `dirigirseDireccion` tinyint(1) DEFAULT 0,
+  `concluirTrabajo` tinyint(1) DEFAULT 0,
   PRIMARY KEY (`ID_Servicio`),
   KEY `ID_Cliente` (`ID_Cliente`),
   KEY `ID_Tecnico` (`ID_Tecnico`),
@@ -145,9 +145,13 @@ CREATE TABLE IF NOT EXISTS `servicio` (
   CONSTRAINT `servicio_ibfk_1` FOREIGN KEY (`ID_Cliente`) REFERENCES `persona` (`ID_Persona`),
   CONSTRAINT `servicio_ibfk_2` FOREIGN KEY (`ID_Tecnico`) REFERENCES `persona` (`ID_Persona`),
   CONSTRAINT `servicio_ibfk_3` FOREIGN KEY (`ID_Direccion`) REFERENCES `direccion` (`ID_Direccion`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- Dumping data for table plomeria.servicio: ~0 rows (approximately)
+-- Dumping data for table plomeria.servicio: ~4 rows (approximately)
+INSERT INTO `servicio` (`ID_Servicio`, `TipoServicio`, `CostoTotal`, `Estado`, `ID_Cliente`, `ID_Tecnico`, `ID_Direccion`, `FechaSolicitud`, `FechaCompletado`, `Calificacion`, `recogerMateriales`, `dirigirseDireccion`, `concluirTrabajo`) VALUES
+	(3, 'Mantenimiento preventivo y lavado de tinacos', 580.00, 'Completado', 2, 4, 1, '2024-06-01 10:00:00', '2024-06-01 12:00:00', 4, 1, 1, 1),
+	(4, 'Reparación de fuga de agua', 928.00, 'Completado', 2, 5, 2, '2024-06-02 14:00:00', '2024-06-02 16:00:00', 5, 1, 1, 1),
+	(7, 'Mantenimiento preventivo y lavado de tinacos', 580.00, 'En Camino', 6, 5, 7, '2024-06-25 06:57:26', NULL, NULL, 1, 1, 1);
 
 /*!40103 SET TIME_ZONE=IFNULL(@OLD_TIME_ZONE, 'system') */;
 /*!40101 SET SQL_MODE=IFNULL(@OLD_SQL_MODE, '') */;

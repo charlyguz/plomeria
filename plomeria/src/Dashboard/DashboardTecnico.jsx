@@ -1,15 +1,25 @@
 import { useState, useEffect } from 'react';
-import {
-  BellAlertIcon,
-  UserCircleIcon,
-} from "@heroicons/react/24/solid";
+import { BellAlertIcon, UserCircleIcon } from "@heroicons/react/24/solid";
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
 const materialRecomendado = {
-  'Mantenimiento preventivo y lavado de tinacos': ['Material A', 'Material B'],
-  'Reparación de fuga de agua': ['Material C', 'Material D'],
-  'Instalación de calentador de agua': ['Material E', 'Material F']
+  'Mantenimiento preventivo y lavado de tinacos': [
+    '1 Filtro de tinaco',
+    '1 litro de solución sanitizante antibacterial',
+    '1 Cepillo con extensor'
+  ],
+  'Reparación de fuga de agua': [
+    '3 metros de Tubo de cobre de 1/2 pulgada',
+    '5 Codos de 1/2 pulgada',
+    '2 Metros de soldadura',
+    '1 tubo de gas butano de 1/2 litro'
+  ],
+  'Instalación de calentador de agua': [
+    '1 Kit de mangueras de agua caliente, fria y gas',
+    '1 rollo de cinta Teflón',
+    '2 Valvulas de presión inversa de 1/2 pulgada'
+  ]
 };
 
 const DashboardTecnico = () => {
@@ -28,21 +38,35 @@ const DashboardTecnico = () => {
   const [error, setError] = useState(null);
   const navigate = useNavigate();
 
-  const handleSeleccionarSolicitud = (solicitud) => {
-    setSolicitudSeleccionada(solicitud);
-    setReparacionEnCurso(solicitud);
-    setTareasCompletadas({
-      recogerMateriales: false,
-      dirigirseDireccion: false,
-      concluirTrabajo: false
-    });
+  const handleSeleccionarSolicitud = async (solicitud) => {
+    if (reparacionEnCurso && reparacionEnCurso.ID_Servicio === solicitud.ID_Servicio) {
+      return; // Si ya está en curso la misma solicitud, no hacer nada
+    }
+    try {
+      const response = await axios.get(`http://localhost:3002/api/servicios/${solicitud.ID_Servicio}/progreso`, { withCredentials: true });
+      const progreso = response.data;
+
+      setSolicitudSeleccionada(solicitud);
+      setReparacionEnCurso(solicitud);
+      setTareasCompletadas({
+        recogerMateriales: progreso.recogerMateriales === 1,
+        dirigirseDireccion: progreso.dirigirseDireccion === 1,
+        concluirTrabajo: progreso.concluirTrabajo === 1
+      });
+    } catch (error) {
+      console.error('Error fetching progress:', error);
+    }
   };
 
   const handleSolicitarMateriales = async () => {
-    const materiales = materialRecomendado[solicitudSeleccionada.TipoServicio] || [];
-    setMaterialesSolicitados(materiales);
-    setTareasCompletadas((prev) => ({ ...prev, recogerMateriales: true }));
-    await actualizarEstadoServicio('Aceptado');
+    if (!tareasCompletadas.recogerMateriales) {
+      const materiales = materialRecomendado[solicitudSeleccionada.TipoServicio] || [];
+      setMaterialesSolicitados(materiales);
+      setTareasCompletadas((prev) => ({ ...prev, recogerMateriales: true }));
+      await actualizarProgresoServicio(reparacionEnCurso.ID_Servicio, { recogerMateriales: true });
+      await actualizarEstadoServicio('Aceptado');
+      fetchServices();  // Refresca los servicios después de actualizar el estado
+    }
   };
 
   const handleEvidenciaChange = (event) => {
@@ -62,15 +86,21 @@ const DashboardTecnico = () => {
         withCredentials: true
       });
       setTareasCompletadas((prev) => ({ ...prev, concluirTrabajo: true }));
+      await actualizarProgresoServicio(reparacionEnCurso.ID_Servicio, { concluirTrabajo: true });
       alert('Trabajo concluido con éxito.');
+      fetchServices();  // Refresca los servicios después de actualizar el estado
     } catch (error) {
       console.error('Error concluyendo el trabajo:', error);
     }
   };
 
   const handleMarcarDireccion = async () => {
-    setTareasCompletadas((prev) => ({ ...prev, dirigirseDireccion: true }));
-    await actualizarEstadoServicio('En Camino');
+    if (!tareasCompletadas.dirigirseDireccion) {
+      setTareasCompletadas((prev) => ({ ...prev, dirigirseDireccion: true }));
+      await actualizarProgresoServicio(reparacionEnCurso.ID_Servicio, { dirigirseDireccion: true });
+      await actualizarEstadoServicio('En Camino');
+      fetchServices();  // Refresca los servicios después de actualizar el estado
+    }
   };
 
   const actualizarEstadoServicio = async (estado) => {
@@ -84,6 +114,14 @@ const DashboardTecnico = () => {
     }
   };
 
+  const actualizarProgresoServicio = async (idServicio, progreso) => {
+    try {
+      await axios.put(`http://localhost:3002/api/servicios/${idServicio}/progreso`, progreso, { withCredentials: true });
+    } catch (error) {
+      console.error('Error actualizando progreso del servicio:', error);
+    }
+  };
+
   const handleLogout = async () => {
     try {
       await axios.post('http://localhost:3002/api/logout', {}, { withCredentials: true });
@@ -93,22 +131,28 @@ const DashboardTecnico = () => {
     }
   };
 
-  useEffect(() => {
-    const fetchServices = async () => {
-      try {
-        const response = await axios.get('http://localhost:3002/api/servicios', {
-          withCredentials: true
-        });
-        setServicios(response.data);
-        setLoading(false);
-      } catch (err) {
-        console.error('Error fetching services:', err);
-        setError('Failed to fetch services');
-        setLoading(false);
-      }
-    };
+  const fetchServices = async () => {
+    try {
+      const response = await axios.get('http://localhost:3002/api/servicios', {
+        withCredentials: true
+      });
+      setServicios(response.data);
+      setLoading(false);
+    } catch (err) {
+      console.error('Error fetching services:', err);
+      setError('Failed to fetch services');
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchServices();
+
+    const interval = setInterval(() => {
+      fetchServices();
+    }, 60000); // Actualiza cada minuto
+
+    return () => clearInterval(interval);
   }, []);
 
   const serviciosEnCurso = servicios.filter(s => s.Estado !== 'Completado');

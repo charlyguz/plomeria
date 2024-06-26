@@ -19,6 +19,10 @@ const DashboardCliente = ({ userId }) => {
   const navigate = useNavigate();
 
   const handleSolicitarServicio = () => {
+    if (servicioActual) {
+      alert("No puede solicitar más de un servicio a la vez");
+      return;
+    }
     setFlippedSolicitar(true);
   };
 
@@ -106,7 +110,7 @@ const DashboardCliente = ({ userId }) => {
       }
     }
   };
-  
+
   const handleCalificarTecnico = async () => {
     try {
       await axios.put(`http://localhost:3002/api/servicios/${servicioActual.ID_Servicio}`, {
@@ -115,7 +119,7 @@ const DashboardCliente = ({ userId }) => {
       }, {
         withCredentials: true
       });
-
+  
       setFlippedServicioActual(false);
       setCalificacion('');
       fetchServices();
@@ -148,6 +152,16 @@ const DashboardCliente = ({ userId }) => {
     fetchServices();
   }, [userId]);
 
+  const canCalificar = (servicio) => {
+    return (
+      servicio.recogerMateriales &&
+      servicio.dirigirseDireccion &&
+      servicio.concluirTrabajo &&
+      (servicio.Calificacion === null || servicio.Calificacion === undefined) &&
+      (servicio.FechaCompletado === null || servicio.FechaCompletado === undefined)
+    );
+  };
+
   return (
     <div className="flex min-h-screen">
       {/* Barra lateral */}
@@ -179,7 +193,7 @@ const DashboardCliente = ({ userId }) => {
           </button>
         </div>
       </div>
-
+  
       {/* Panel principal */}
       <div className="w-5/6 bg-gray-100 p-8">
         <div className="flex justify-between items-center mb-8">
@@ -292,8 +306,8 @@ const DashboardCliente = ({ userId }) => {
                       </label>
                       <input
                         className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                        name="NumeroInterior"
-                        value={formData.NumeroInterior} 
+                        name="NumeroInterior" 
+                        value={formData.NumeroInterior}
                         onChange={handleInputChange}
                         type="text"
                         placeholder="Número Interior"
@@ -350,7 +364,7 @@ const DashboardCliente = ({ userId }) => {
               </div>
             </div>
           </div>
-
+  
           {/* Card con animación de giro para Servicio Actual */}
           <div
             className={`bg-white shadow-lg rounded-lg p-4 h-96 transform transition-transform duration-500 ${
@@ -384,7 +398,7 @@ const DashboardCliente = ({ userId }) => {
                     <h2 className="text-xl font-bold mb-4">Servicio Actual</h2>
                     <p>Tipo de Servicio: {servicioActual.TipoServicio}</p>
                     <p>Estado: {servicioActual.Estado}</p>
-                    {servicioActual.Estado === 'Completado' && (
+                    {canCalificar(servicioActual) ? (
                       <div className="flex flex-col items-center mt-4">
                         <label className="block text-gray-700">Calificación del Técnico</label>
                         <input
@@ -403,6 +417,14 @@ const DashboardCliente = ({ userId }) => {
                         >
                           Calificar y Completar Servicio
                         </button>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center mt-4">
+                        <ul className="list-disc list-inside">
+                          <li>{servicioActual.recogerMateriales ? "Materiales recogidos" : "Materiales pendientes"}</li>
+                          <li>{servicioActual.dirigirseDireccion ? "En camino a la dirección" : "Dirección pendiente"}</li>
+                          <li>{servicioActual.concluirTrabajo ? "Trabajo concluido" : "Trabajo pendiente"}</li>
+                        </ul>
                       </div>
                     )}
                   </>

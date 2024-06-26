@@ -130,8 +130,6 @@ app.post('/api/servicios', async (req, res) => {
   }
 });
 
-
-
 app.get('/api/servicios', async (req, res) => {
   try {
     if (!req.session.user || req.session.user.Rol !== 'Tecnico') {
@@ -141,7 +139,9 @@ app.get('/api/servicios', async (req, res) => {
     const tecnicoId = req.session.user.ID_Persona;
     const conn = await pool.getConnection();
     const rows = await conn.query(`
-      SELECT s.*, d.Calle, d.NumeroExterior, d.NumeroInterior, d.Colonia, d.Alcaldia, d.CodigoPostal
+      SELECT s.ID_Servicio, s.TipoServicio, s.CostoTotal, s.Estado, s.ID_Cliente, s.ID_Tecnico, s.ID_Direccion, s.FechaSolicitud, s.FechaCompletado, s.Calificacion,
+             s.recogerMateriales, s.dirigirseDireccion, s.concluirTrabajo, 
+             d.Calle, d.NumeroExterior, d.NumeroInterior, d.Colonia, d.Alcaldia, d.CodigoPostal
       FROM Servicio s
       JOIN Direccion d ON s.ID_Direccion = d.ID_Direccion
       WHERE s.ID_Tecnico = ?
@@ -154,16 +154,44 @@ app.get('/api/servicios', async (req, res) => {
   }
 });
 
+app.get('/api/servicios/:id/progreso', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const conn = await pool.getConnection();
+    const rows = await conn.query('SELECT recogerMateriales, dirigirseDireccion, concluirTrabajo FROM Servicio WHERE ID_Servicio = ?', [id]);
+    conn.release();
+    if (rows.length > 0) {
+      res.json(rows[0]);
+    } else {
+      res.status(404).json({ error: 'Servicio no encontrado' });
+    }
+  } catch (err) {
+    console.error('Error fetching progress:', err);
+    res.status(500).json({ error: 'Failed to fetch progress' });
+  }
+});
 
-
-
-// Endpoint para actualizar el estado del servicio y calificar al técnico
 app.put('/api/servicios/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { estado, evidencia, calificacion } = req.body;
+    const { estado, calificacion } = req.body;
 
     const conn = await pool.getConnection();
+
+    const [servicio] = await conn.query('SELECT recogerMateriales, dirigirseDireccion, concluirTrabajo, Calificacion, FechaCompletado FROM Servicio WHERE ID_Servicio = ?', [id]);
+
+    if (!servicio) {
+      conn.release();
+      return res.status(404).json({ error: 'Servicio no encontrado' });
+    }
+
+    const { recogerMateriales, dirigirseDireccion, concluirTrabajo, Calificacion, FechaCompletado } = servicio;
+
+    if (!recogerMateriales || !dirigirseDireccion || !concluirTrabajo || Calificacion || FechaCompletado) {
+      conn.release();
+      return res.status(400).json({ error: 'No se puede calificar. Asegúrese de que todas las tareas están completadas y que el servicio aún no ha sido calificado o finalizado.' });
+    }
+
     if (estado) {
       await conn.query('UPDATE Servicio SET Estado = ? WHERE ID_Servicio = ?', [estado, id]);
       if (estado === 'Completado') {
@@ -176,14 +204,12 @@ app.put('/api/servicios/:id', async (req, res) => {
         await conn.query('UPDATE Persona SET Disponible = 1 WHERE ID_Persona = ?', [tecnicoId]);
       }
     }
-    if (evidencia) {
-      await conn.query('INSERT INTO Evidencia (Foto, FechaHora, ID_Servicio) VALUES (?, ?, ?)', [evidencia, new Date().toISOString().slice(0, 19).replace('T', ' '), id]);
-    }
+
     if (calificacion) {
       await conn.query('UPDATE Servicio SET Calificacion = ? WHERE ID_Servicio = ?', [calificacion, id]);
     }
-    conn.release();
 
+    conn.release();
     res.json({ message: 'Servicio updated successfully' });
   } catch (err) {
     console.error('Error updating Servicio:', err);
@@ -192,6 +218,28 @@ app.put('/api/servicios/:id', async (req, res) => {
 });
 
 
+app.put('/api/servicios/:id/progreso', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { recogerMateriales, dirigirseDireccion, concluirTrabajo } = req.body;
+
+    const conn = await pool.getConnection();
+    const query = `
+      UPDATE Servicio 
+      SET recogerMateriales = IF(? IS NULL, recogerMateriales, ?), 
+          dirigirseDireccion = IF(? IS NULL, dirigirseDireccion, ?), 
+          concluirTrabajo = IF(? IS NULL, concluirTrabajo, ?) 
+      WHERE ID_Servicio = ?`;
+
+    await conn.query(query, [recogerMateriales, recogerMateriales, dirigirseDireccion, dirigirseDireccion, concluirTrabajo, concluirTrabajo, id]);
+    conn.release();
+
+    res.json({ message: 'Progreso actualizado correctamente' });
+  } catch (err) {
+    console.error('Error actualizando progreso del servicio:', err);
+    res.status(500).json({ error: 'Failed to update progress' });
+  }
+});
 
 // Get all technical people
 app.get('/api/tecnicos', async (req, res) => {
@@ -374,18 +422,18 @@ app.get('/api/estadisticas', async (req, res) => {
   } catch (err) {
     console.error('Error fetching statistics:', err);
     res.status(500).json({ error: 'Failed to fetch statistics' });
+
   }
 });
 
-
-
-// Endpoint para actualizar el estado del servicio y calificar al técnico
 // Endpoint para obtener servicios de un usuario en particular
 app.get('/api/servicios/:id_cliente', async (req, res) => {
   try {
     const { id_cliente } = req.params;
     const conn = await pool.getConnection();
-    const services = await conn.query('SELECT * FROM Servicio WHERE ID_Cliente = ? AND Estado != "Completado"', [id_cliente]);
+    const services = await conn.query(`
+      SELECT * FROM Servicio WHERE ID_Cliente = ? AND Estado IN ('Pendiente', 'Aceptado', 'En Camino', 'En Proceso')
+    `, [id_cliente]);
     conn.release();
     res.json(services);
   } catch (err) {
@@ -393,12 +441,6 @@ app.get('/api/servicios/:id_cliente', async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch services' });
   }
 });
-
-
-
-
-
-
 
 app.listen(port, () => {
     console.log(`Server listening at http://localhost:${port}`);
