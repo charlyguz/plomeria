@@ -38,7 +38,7 @@ const Login = () => {
     <div className="min-h-screen flex items-center justify-center bg-gray-100 relative overflow-hidden">
       <div className="absolute inset-0 bg-black">
         <div className="relative w-full h-full">
-          <div className="relative top-28">
+          <div className="relative top-5">
             <h2 className="text-5xl font-semibold text-center mb-6 text-white">Acceso</h2>
             <div className="flex justify-center mb-6">
               <button

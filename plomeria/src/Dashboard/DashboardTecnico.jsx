@@ -22,6 +22,32 @@ const materialRecomendado = {
   ]
 };
 
+const materialIds = {
+  'Filtro de tinaco': 11,
+  'Solución sanitizante antibacterial': 12,
+  'Cepillo con extensor': 13,
+  'Tubo de cobre de 1/2 pulgada': 14,
+  'Codos de 1/2 pulgada': 15,
+  'Soldadura': 16,
+  'Tubo de gas butano de 1/2 litro': 17,
+  'Kit de mangueras de agua caliente, fria y gas': 18,
+  'Rollo de cinta Teflón': 19,
+  'Válvulas de presión inversa de 1/2 pulgada': 20
+};
+
+const materialCantidades = {
+  'Filtro de tinaco': 1,
+  'Solución sanitizante antibacterial': 1,
+  'Cepillo con extensor': 1,
+  'Tubo de cobre de 1/2 pulgada': 3,
+  'Codos de 1/2 pulgada': 5,
+  'Soldadura': 2,
+  'Tubo de gas butano de 1/2 litro': 1,
+  'Kit de mangueras de agua caliente, fria y gas': 1,
+  'Rollo de cinta Teflón': 1,
+  'Válvulas de presión inversa de 1/2 pulgada': 2
+};
+
 const DashboardTecnico = () => {
   const [solicitudSeleccionada, setSolicitudSeleccionada] = useState(null);
   const [materialesSolicitados, setMaterialesSolicitados] = useState([]);
@@ -61,10 +87,22 @@ const DashboardTecnico = () => {
   const handleSolicitarMateriales = async () => {
     if (!tareasCompletadas.recogerMateriales) {
       const materiales = materialRecomendado[solicitudSeleccionada.TipoServicio] || [];
+      
+      // Mapear los nombres de los materiales a los IDs y cantidades
+      const materialesParaEnviar = materiales.map((material) => {
+        const materialId = materialIds[material]; // Función para obtener el ID del material por su nombre
+        const cantidad = materialCantidades[material]; // Función para obtener la cantidad utilizada del material
+        return { ID_Material: materialId, CantidadUtilizada: cantidad };
+      });
+  
       setMaterialesSolicitados(materiales);
       setTareasCompletadas((prev) => ({ ...prev, recogerMateriales: true }));
       await actualizarProgresoServicio(reparacionEnCurso.ID_Servicio, { recogerMateriales: true });
-      await actualizarEstadoServicio('Aceptado');
+      await actualizarEstadoServicio(reparacionEnCurso.ID_Servicio, 'Aceptado');
+      
+      // Enviar materiales al servidor
+      await axios.post(`http://localhost:3002/api/servicios/${reparacionEnCurso.ID_Servicio}/materiales`, { materiales: materialesParaEnviar }, { withCredentials: true });
+  
       fetchServices();  // Refresca los servicios después de actualizar el estado
     }
   };
@@ -76,8 +114,8 @@ const DashboardTecnico = () => {
   const handleConcluirTrabajo = async () => {
     const formData = new FormData();
     formData.append('evidencia', evidencia);
-    formData.append('estado', 'Completado');
-
+    formData.append('estado', 'Esperando Calificación');
+  
     try {
       await axios.put(`http://localhost:3002/api/servicios/${reparacionEnCurso.ID_Servicio}`, formData, {
         headers: {
@@ -87,7 +125,8 @@ const DashboardTecnico = () => {
       });
       setTareasCompletadas((prev) => ({ ...prev, concluirTrabajo: true }));
       await actualizarProgresoServicio(reparacionEnCurso.ID_Servicio, { concluirTrabajo: true });
-      alert('Trabajo concluido con éxito.');
+      await actualizarEstadoServicio(reparacionEnCurso.ID_Servicio, 'Esperando Calificación');
+      alert('Trabajo concluido con éxito. Esperando calificación del cliente.');
       fetchServices();  // Refresca los servicios después de actualizar el estado
     } catch (error) {
       console.error('Error concluyendo el trabajo:', error);
@@ -98,14 +137,14 @@ const DashboardTecnico = () => {
     if (!tareasCompletadas.dirigirseDireccion) {
       setTareasCompletadas((prev) => ({ ...prev, dirigirseDireccion: true }));
       await actualizarProgresoServicio(reparacionEnCurso.ID_Servicio, { dirigirseDireccion: true });
-      await actualizarEstadoServicio('En Camino');
+      await actualizarEstadoServicio(reparacionEnCurso.ID_Servicio, 'En Camino');
       fetchServices();  // Refresca los servicios después de actualizar el estado
     }
   };
 
-  const actualizarEstadoServicio = async (estado) => {
+  const actualizarEstadoServicio = async (idServicio, estado) => {
     try {
-      await axios.put(`http://localhost:3002/api/servicios/${reparacionEnCurso.ID_Servicio}`, {
+      await axios.put(`http://localhost:3002/api/servicios/${idServicio}`, {
         estado
       }, { withCredentials: true });
       setReparacionEnCurso((prev) => ({ ...prev, Estado: estado }));
@@ -265,12 +304,12 @@ const DashboardTecnico = () => {
           </button>
         </div>
       )}
-
+  
       {/* Mensaje de confirmación */}
       {tareasCompletadas.concluirTrabajo && (
         <div className="bg-green-100 shadow-lg rounded-lg p-4 mb-8">
           <h2 className="text-2xl font-bold mb-4">Trabajo Concluido</h2>
-          <p>El trabajo ha sido concluido satisfactoriamente.</p>
+          <p>El trabajo ha sido concluido satisfactoriamente. Esperando Calificacion.</p>
         </div>
       )}
     </div>

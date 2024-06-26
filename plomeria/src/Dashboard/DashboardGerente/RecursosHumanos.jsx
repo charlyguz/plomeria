@@ -10,12 +10,14 @@ const RecursosHumanos = () => {
     Nombre: '',
     CorreoElectronico: '',
     Contrasena: '',
-    Calle: '',
-    NumeroExterior: '',
-    NumeroInterior: '',
-    Colonia: '',
-    Alcaldia: '',
-    CodigoPostal: '',
+    Direccion: {
+      Calle: '',
+      NumeroExterior: '',
+      NumeroInterior: '',
+      Colonia: '',
+      Alcaldia: '',
+      CodigoPostal: '',
+    },
   });
 
   useEffect(() => {
@@ -43,7 +45,7 @@ const RecursosHumanos = () => {
     try {
       const response = await axios.post('http://localhost:3002/api/persona', {
         ...formData,
-        Rol: 'Tecnico'
+        Rol: 'Tecnico',
       }, { withCredentials: true });
 
       setTecnicos([...tecnicos, response.data]);
@@ -52,12 +54,14 @@ const RecursosHumanos = () => {
         Nombre: '',
         CorreoElectronico: '',
         Contrasena: '',
-        Calle: '',
-        NumeroExterior: '',
-        NumeroInterior: '',
-        Colonia: '',
-        Alcaldia: '',
-        CodigoPostal: '',
+        Direccion: {
+          Calle: '',
+          NumeroExterior: '',
+          NumeroInterior: '',
+          Colonia: '',
+          Alcaldia: '',
+          CodigoPostal: '',
+        },
       });
     } catch (err) {
       console.error('Error adding technician:', err);
@@ -74,6 +78,17 @@ const RecursosHumanos = () => {
     setFormData({
       ...formData,
       [name]: value,
+    });
+  };
+
+  const handleDireccionChange = (e) => {
+    const { name, value } = e.target;
+    setFormData({
+      ...formData,
+      Direccion: {
+        ...formData.Direccion,
+        [name]: value,
+      },
     });
   };
 
@@ -145,8 +160,8 @@ const RecursosHumanos = () => {
               type="text"
               placeholder="Calle"
               name="Calle"
-              value={formData.Calle}
-              onChange={handleInputChange}
+              value={formData.Direccion.Calle}
+              onChange={handleDireccionChange}
               required
             />
           </div>
@@ -158,8 +173,8 @@ const RecursosHumanos = () => {
                 type="text"
                 placeholder="Número Exterior"
                 name="NumeroExterior"
-                value={formData.NumeroExterior}
-                onChange={handleInputChange}
+                value={formData.Direccion.NumeroExterior}
+                onChange={handleDireccionChange}
                 required
               />
             </div>
@@ -170,8 +185,8 @@ const RecursosHumanos = () => {
                 type="text"
                 placeholder="Número Interior"
                 name="NumeroInterior"
-                value={formData.NumeroInterior}
-                onChange={handleInputChange}
+                value={formData.Direccion.NumeroInterior}
+                onChange={handleDireccionChange}
               />
             </div>
           </div>
@@ -182,8 +197,8 @@ const RecursosHumanos = () => {
               type="text"
               placeholder="Colonia"
               name="Colonia"
-              value={formData.Colonia}
-              onChange={handleInputChange}
+              value={formData.Direccion.Colonia}
+              onChange={handleDireccionChange}
               required
             />
           </div>
@@ -194,8 +209,8 @@ const RecursosHumanos = () => {
               type="text"
               placeholder="Alcaldía"
               name="Alcaldia"
-              value={formData.Alcaldia}
-              onChange={handleInputChange}
+              value={formData.Direccion.Alcaldia}
+              onChange={handleDireccionChange}
               required
             />
           </div>
@@ -206,8 +221,8 @@ const RecursosHumanos = () => {
               type="text"
               placeholder="Código Postal"
               name="CodigoPostal"
-              value={formData.CodigoPostal}
-              onChange={handleInputChange}
+              value={formData.Direccion.CodigoPostal}
+              onChange={handleDireccionChange}
               required
             />
           </div>

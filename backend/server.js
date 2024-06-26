@@ -130,6 +130,8 @@ app.post('/api/servicios', async (req, res) => {
   }
 });
 
+
+
 app.get('/api/servicios', async (req, res) => {
   try {
     if (!req.session.user || req.session.user.Rol !== 'Tecnico') {
@@ -187,21 +189,16 @@ app.put('/api/servicios/:id', async (req, res) => {
 
     const { recogerMateriales, dirigirseDireccion, concluirTrabajo, Calificacion, FechaCompletado } = servicio;
 
-    if (!recogerMateriales || !dirigirseDireccion || !concluirTrabajo || Calificacion || FechaCompletado) {
-      conn.release();
-      return res.status(400).json({ error: 'No se puede calificar. Asegúrese de que todas las tareas están completadas y que el servicio aún no ha sido calificado o finalizado.' });
-    }
-
     if (estado) {
       await conn.query('UPDATE Servicio SET Estado = ? WHERE ID_Servicio = ?', [estado, id]);
-      if (estado === 'Completado') {
-        const fechaCompletado = new Date().toISOString().slice(0, 19).replace('T', ' ');
-        await conn.query('UPDATE Servicio SET FechaCompletado = ? WHERE ID_Servicio = ?', [fechaCompletado, id]);
-        
+      if (estado === 'Esperando Calificación') {
         const tecnicoIdResult = await conn.query('SELECT ID_Tecnico FROM Servicio WHERE ID_Servicio = ?', [id]);
         const tecnicoId = tecnicoIdResult[0].ID_Tecnico;
-        
+
         await conn.query('UPDATE Persona SET Disponible = 1 WHERE ID_Persona = ?', [tecnicoId]);
+      } else if (estado === 'Completado') {
+        const fechaCompletado = new Date().toISOString().slice(0, 19).replace('T', ' ');
+        await conn.query('UPDATE Servicio SET FechaCompletado = ? WHERE ID_Servicio = ?', [fechaCompletado, id]);
       }
     }
 
@@ -216,7 +213,6 @@ app.put('/api/servicios/:id', async (req, res) => {
     res.status(500).json({ error: 'Failed to update Servicio' });
   }
 });
-
 
 app.put('/api/servicios/:id/progreso', async (req, res) => {
   try {
@@ -366,34 +362,24 @@ app.put('/api/material/:id', async (req, res) => {
 });
 
 // Endpoint to get statistics
+// Endpoint para obtener estadísticas
 app.get('/api/estadisticas', async (req, res) => {
   try {
     const conn = await pool.getConnection();
 
-    // Total de servicios solicitados
     const [totalSolicitados] = await conn.query('SELECT COUNT(*) as total FROM Servicio');
-    // Total de servicios completados
     const [totalCompletados] = await conn.query('SELECT COUNT(*) as total FROM Servicio WHERE Estado = "Completado"');
-    // Tiempo promedio de respuesta
     const [tiempoPromedioRespuesta] = await conn.query('SELECT AVG(TIMESTAMPDIFF(HOUR, FechaSolicitud, FechaSolicitud)) as promedio FROM Servicio');
-    // Tiempo promedio de finalización
     const [tiempoPromedioFinalizacion] = await conn.query('SELECT AVG(TIMESTAMPDIFF(HOUR, FechaSolicitud, FechaCompletado)) as promedio FROM Servicio WHERE Estado = "Completado"');
-    // Rendimiento de técnicos
     const rendimientoTecnicos = await conn.query('SELECT Persona.Nombre, COUNT(*) as servicios FROM Persona JOIN Servicio ON Persona.ID_Persona = Servicio.ID_Tecnico WHERE Persona.Rol = "Tecnico" GROUP BY Persona.Nombre');
-    // Utilización de materiales
     const utilizacionMateriales = await conn.query('SELECT Material.Nombre, SUM(DetalleServicioMaterial.CantidadUtilizada) as cantidad FROM Material JOIN DetalleServicioMaterial ON Material.ID_Material = DetalleServicioMaterial.ID_Material GROUP BY Material.Nombre');
-    // Costos y beneficios
     const [costosYBeneficios] = await conn.query('SELECT SUM(CostoTotal) as ingresos, IFNULL(SUM(Material.CostoUnitario * DetalleServicioMaterial.CantidadUtilizada), 0) as costos FROM Servicio LEFT JOIN DetalleServicioMaterial ON Servicio.ID_Servicio = DetalleServicioMaterial.ID_Servicio LEFT JOIN Material ON DetalleServicioMaterial.ID_Material = Material.ID_Material');
-    // Calificaciones de técnicos
     const calificacionesTecnicos = await conn.query('SELECT Persona.Nombre, AVG(Servicio.Calificacion) as calificacion FROM Persona JOIN Servicio ON Persona.ID_Persona = Servicio.ID_Tecnico WHERE Persona.Rol = "Tecnico" AND Servicio.Calificacion IS NOT NULL GROUP BY Persona.Nombre');
-    // Estado de los trabajos
     const estadoTrabajos = await conn.query('SELECT Estado, COUNT(*) as cantidad FROM Servicio GROUP BY Estado');
-    // Evidencias de trabajos
     const evidencias = await conn.query('SELECT Persona.Nombre, COUNT(Evidencia.ID_Evidencia) as evidencias FROM Persona JOIN Servicio ON Persona.ID_Persona = Servicio.ID_Tecnico JOIN Evidencia ON Servicio.ID_Servicio = Evidencia.ID_Servicio WHERE Persona.Rol = "Tecnico" GROUP BY Persona.Nombre');
 
     conn.release();
 
-    // Convertir BigInt a Number
     const convertBigIntToNumber = (obj) => {
       for (const key in obj) {
         if (typeof obj[key] === 'bigint') {
@@ -422,9 +408,9 @@ app.get('/api/estadisticas', async (req, res) => {
   } catch (err) {
     console.error('Error fetching statistics:', err);
     res.status(500).json({ error: 'Failed to fetch statistics' });
-
   }
 });
+
 
 // Endpoint para obtener servicios de un usuario en particular
 app.get('/api/servicios/:id_cliente', async (req, res) => {
@@ -432,7 +418,7 @@ app.get('/api/servicios/:id_cliente', async (req, res) => {
     const { id_cliente } = req.params;
     const conn = await pool.getConnection();
     const services = await conn.query(`
-      SELECT * FROM Servicio WHERE ID_Cliente = ? AND Estado IN ('Pendiente', 'Aceptado', 'En Camino', 'En Proceso')
+      SELECT * FROM Servicio WHERE ID_Cliente = ? AND Estado IN ('Pendiente', 'Aceptado', 'En Camino', 'En Proceso', 'Esperando Calificación')
     `, [id_cliente]);
     conn.release();
     res.json(services);
@@ -441,6 +427,48 @@ app.get('/api/servicios/:id_cliente', async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch services' });
   }
 });
+
+app.get('/api/session', (req, res) => {
+  if (req.session.user) {
+    res.json({ user: req.session.user });
+  } else {
+    res.status(401).json({ error: 'User not authenticated' });
+  }
+});
+
+
+app.post('/api/servicios/:id/materiales', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { materiales } = req.body;
+
+    const conn = await pool.getConnection();
+
+    for (const material of materiales) {
+      // Insertar o actualizar el detalle del servicio y material
+      await conn.query(`
+        INSERT INTO detalleserviciomaterial (ID_Servicio, ID_Material, CantidadUtilizada) 
+        VALUES (?, ?, ?)
+        ON DUPLICATE KEY UPDATE CantidadUtilizada = CantidadUtilizada + ?
+      `, [id, material.ID_Material, material.CantidadUtilizada, material.CantidadUtilizada]);
+
+      // Actualizar la cantidad disponible de material en el inventario
+      await conn.query(`
+        UPDATE material 
+        SET CantidadDisponible = CantidadDisponible - ? 
+        WHERE ID_Material = ?
+      `, [material.CantidadUtilizada, material.ID_Material]);
+    }
+
+    conn.release();
+    res.json({ message: 'Materiales actualizados correctamente' });
+  } catch (err) {
+    console.error('Error actualizando materiales:', err);
+    res.status(500).json({ error: 'Failed to update materials' });
+  }
+});
+
+
 
 app.listen(port, () => {
     console.log(`Server listening at http://localhost:${port}`);

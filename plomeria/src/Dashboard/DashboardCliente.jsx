@@ -7,7 +7,7 @@ import {
 import axios from "axios";
 import { useNavigate } from 'react-router-dom';
 
-const DashboardCliente = ({ userId }) => {
+const DashboardCliente = () => {
   const [flippedSolicitar, setFlippedSolicitar] = useState(false);
   const [flippedServicioActual, setFlippedServicioActual] = useState(false);
   const [servicios, setServicios] = useState([]);
@@ -16,14 +16,91 @@ const DashboardCliente = ({ userId }) => {
   const [userMenuVisible, setUserMenuVisible] = useState(false);
   const [servicioActual, setServicioActual] = useState(null);
   const [calificacion, setCalificacion] = useState('');
+  const [sessionUser, setSessionUser] = useState(null);
   const navigate = useNavigate();
 
-  const handleSolicitarServicio = () => {
+  const alcaldias = [
+    "Álvaro Obregón",
+    "Azcapotzalco",
+    "Benito Juárez",
+    "Coyoacán",
+    "Cuajimalpa de Morelos",
+    "Cuauhtémoc",
+    "Gustavo A. Madero",
+    "Iztacalco",
+    "Iztapalapa",
+    "La Magdalena Contreras",
+    "Miguel Hidalgo",
+    "Milpa Alta",
+    "Tláhuac",
+    "Tlalpan",
+    "Venustiano Carranza",
+    "Xochimilco"
+  ];
+
+  const coloniasPorAlcaldia = {
+    "Álvaro Obregón": ["Santa Fe", "San Ángel", "Tizapan", "Olivar de los Padres"],
+    "Azcapotzalco": ["San Álvaro", "Santa María Malinalco", "Nueva Santa María", "Victoria de las Democracias"],
+    "Benito Juárez": ["Narvarte", "Del Valle", "Nápoles", "Nochebuena"],
+    "Coyoacán": ["Del Carmen", "Santa Catarina", "Copilco", "Barrio de la Concepción"],
+    "Cuajimalpa de Morelos": ["Cuajimalpa", "Contadero", "El Yaqui", "San Mateo Tlaltenango"],
+    "Cuauhtémoc": ["Roma Norte", "Condesa", "Juárez", "Centro Histórico"],
+    "Gustavo A. Madero": ["Lindavista", "Vallejo", "Cuchilla del Tesoro", "Nueva Vallejo"],
+    "Iztacalco": ["Agrícola Oriental", "Granjas México", "Pantitlán", "Ramos Millán"],
+    "Iztapalapa": ["Aculco", "Santa María Aztahuacán", "Santa Cruz Meyehualco", "San Lorenzo Tezonco"],
+    "La Magdalena Contreras": ["San Jerónimo Lídice", "San Nicolás Totolapan", "Barranca Seca", "San Bernabé Ocotepec"],
+    "Miguel Hidalgo": ["Polanco", "Lomas de Chapultepec", "Anzures", "Tacubaya"],
+    "Milpa Alta": ["San Antonio Tecómitl", "San Pedro Atocpan", "San Agustín Ohtenco", "Villa Milpa Alta"],
+    "Tláhuac": ["San Andrés Mixquic", "San Francisco Tlaltenco", "Santa Catarina Yecahuizotl", "Zapotitlán"],
+    "Tlalpan": ["Fuentes Brotantes", "Pedregal de San Nicolás", "San Pedro Mártir", "Toriello Guerra"],
+    "Venustiano Carranza": ["Jardín Balbuena", "Moctezuma", "Merced Balbuena", "Morelos"],
+    "Xochimilco": ["San Francisco Caltongo", "San Gregorio Atlapulco", "Santa Cruz Acalpixca", "Santiago Tepalcatlalpan"]
+  };
+
+  const [formData, setFormData] = useState({
+    TipoServicio: "",
+    Calle: "",
+    NumeroExterior: "",
+    NumeroInterior: "",
+    Colonia: "",
+    Alcaldia: "",
+    CodigoPostal: "",
+  });
+
+  const [formErrors, setFormErrors] = useState({});
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData({
+      ...formData,
+      [name]: value,
+    });
+
+    if (name === "Alcaldia") {
+      setFormData((prevState) => ({
+        ...prevState,
+        Colonia: "",
+      }));
+    }
+  };
+
+  const handleSolicitarServicio = async () => {
     if (servicioActual) {
       alert("No puede solicitar más de un servicio a la vez");
       return;
     }
-    setFlippedSolicitar(true);
+    try {
+      const response = await axios.get(`http://localhost:3002/api/servicios/${sessionUser?.ID_Persona}`, { withCredentials: true });
+      const currentService = response.data.find(servicio => servicio.Estado !== 'Completado' && servicio.Estado !== 'Pendiente');
+      if (currentService) {
+        alert("No puede solicitar más de un servicio a la vez");
+        return;
+      }
+      setFlippedSolicitar(true);
+    } catch (err) {
+      console.error('Error fetching services:', err);
+      alert('Error verificando los servicios');
+    }
   };
 
   const handleBackSolicitar = () => {
@@ -48,29 +125,9 @@ const DashboardCliente = ({ userId }) => {
     }
   };
 
-  const [formData, setFormData] = useState({
-    TipoServicio: "",
-    Calle: "",
-    NumeroExterior: "",
-    NumeroInterior: "",
-    Colonia: "",
-    Alcaldia: "",
-    CodigoPostal: "",
-  });
-
-  const [formErrors, setFormErrors] = useState({});
-
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: value,
-    });
-  };
-
   const handleSolicitarServicioSubmit = async (e) => {
     e.preventDefault();
-  
+
     try {
       const response = await axios.post('http://localhost:3002/api/servicios', {
         TipoServicio: formData.TipoServicio,
@@ -85,7 +142,7 @@ const DashboardCliente = ({ userId }) => {
       }, {
         withCredentials: true
       });
-  
+
       console.log(response.data);
       // Clear the form and show a success message
       setFormData({
@@ -100,11 +157,12 @@ const DashboardCliente = ({ userId }) => {
       setFormErrors({});
       setFlippedSolicitar(false);
       alert("Servicio solicitado con éxito. Un técnico ha sido asignado.");
+      setFlippedSolicitar(false);
       fetchServices(); // Refresh the list of services
     } catch (error) {
       console.error("Error submitting service request:", error);
-      if (error.response && error.response.data && error.response.data.errors) {
-        setFormErrors(error.response.data.errors);
+      if (error.response && error.response.data && error.response.data.error) {
+        alert(error.response.data.error);
       } else {
         setFormErrors({ general: "An error occurred during submission." });
       }
@@ -113,13 +171,14 @@ const DashboardCliente = ({ userId }) => {
 
   const handleCalificarTecnico = async () => {
     try {
+      console.log('Calificando servicio:', servicioActual);
       await axios.put(`http://localhost:3002/api/servicios/${servicioActual.ID_Servicio}`, {
         estado: 'Completado',
         calificacion: calificacion
       }, {
         withCredentials: true
       });
-  
+
       setFlippedServicioActual(false);
       setCalificacion('');
       fetchServices();
@@ -130,12 +189,27 @@ const DashboardCliente = ({ userId }) => {
     }
   };
 
+  const canCalificar = (servicio) => {
+    const result = (
+      servicio.recogerMateriales &&
+      servicio.dirigirseDireccion &&
+      servicio.concluirTrabajo &&
+      (servicio.Calificacion === null || servicio.Calificacion === undefined) &&
+      servicio.Estado === 'Esperando Calificación'
+    );
+    console.log(`Puede calificar: ${result}`, servicio);
+    return result;
+  };
+
   const fetchServices = async () => {
     try {
-      const response = await axios.get(`http://localhost:3002/api/servicios/${userId}`, { withCredentials: true });
+      console.log(`Fetching services for user ${sessionUser?.ID_Persona}`);
+      const response = await axios.get(`http://localhost:3002/api/servicios/${sessionUser?.ID_Persona}`, { withCredentials: true });
+      console.log('Servicios recibidos:', response.data);
       setServicios(response.data);
       setLoading(false);
-      const currentService = response.data.find(servicio => servicio.Estado !== 'Completado');
+      const currentService = response.data.find(servicio => servicio.Estado !== 'Completado' && servicio.Estado !== 'Pendiente');
+      console.log('Servicio actual:', currentService);
       if (currentService) {
         setServicioActual(currentService);
       } else {
@@ -148,19 +222,26 @@ const DashboardCliente = ({ userId }) => {
     }
   };
 
-  useEffect(() => {
-    fetchServices();
-  }, [userId]);
-
-  const canCalificar = (servicio) => {
-    return (
-      servicio.recogerMateriales &&
-      servicio.dirigirseDireccion &&
-      servicio.concluirTrabajo &&
-      (servicio.Calificacion === null || servicio.Calificacion === undefined) &&
-      (servicio.FechaCompletado === null || servicio.FechaCompletado === undefined)
-    );
+  const fetchSessionUser = async () => {
+    try {
+      const response = await axios.get('http://localhost:3002/api/session', { withCredentials: true });
+      console.log('Session user:', response.data.user);
+      setSessionUser(response.data.user);
+    } catch (error) {
+      console.error('Error fetching session user:', error);
+      setError('Failed to fetch session user');
+    }
   };
+
+  useEffect(() => {
+    fetchSessionUser();
+  }, []);
+
+  useEffect(() => {
+    if (sessionUser) {
+      fetchServices();
+    }
+  }, [sessionUser]);
 
   return (
     <div className="flex min-h-screen">
@@ -177,7 +258,7 @@ const DashboardCliente = ({ userId }) => {
                 viewBox="0 0 20 20"
                 fill="currentColor"
               >
-                <path d="M2 3.5A2.5 2.5 0 014.5 1h11A2.5 2.5 0 0118 3.5V17a.5.5 0 01-.757.429L10 12.083 2.757 17.43A.5.5 0 012 17V3.5z" />
+                <path d="M2 3.5A2.5 2.5 0118 3.5V17a.5.5 01-.757.429L10 12.083 2.757 17.43A.5.5 012 17V3.5z" />
               </svg>
             </div>
             <span>Solicitar Servicio</span>
@@ -193,7 +274,7 @@ const DashboardCliente = ({ userId }) => {
           </button>
         </div>
       </div>
-  
+
       {/* Panel principal */}
       <div className="w-5/6 bg-gray-100 p-8">
         <div className="flex justify-between items-center mb-8">
@@ -315,26 +396,38 @@ const DashboardCliente = ({ userId }) => {
                     </div>
                   </div>
                   <div>
-                    <label className="block text-gray-700">Colonia</label>
-                    <input
-                      className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                      name="Colonia"
-                      value={formData.Colonia}
-                      onChange={handleInputChange}
-                      type="text"
-                      placeholder="Colonia"
-                    />
-                  </div>
-                  <div>
                     <label className="block text-gray-700">Alcaldía</label>
-                    <input
-                      className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                    <select
+                      className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline input-field"
                       name="Alcaldia"
                       value={formData.Alcaldia}
                       onChange={handleInputChange}
-                      type="text"
-                      placeholder="Alcaldía"
-                    />
+                    >
+                      <option value="">Seleccione una alcaldía</option>
+                      {alcaldias.map((alcaldia) => (
+                        <option key={alcaldia} value={alcaldia}>
+                          {alcaldia}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-gray-700">Colonia</label>
+                    <select
+                      className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline input-field"
+                      name="Colonia"
+                      value={formData.Colonia}
+                      onChange={handleInputChange}
+                      disabled={!formData.Alcaldia}
+                    >
+                      <option value="">Seleccione una colonia</option>
+                      {formData.Alcaldia &&
+                        coloniasPorAlcaldia[formData.Alcaldia]?.map((colonia) => (
+                          <option key={colonia} value={colonia}>
+                            {colonia}
+                          </option>
+                        ))}
+                    </select>
                   </div>
                   <div>
                     <label className="block text-gray-700">Código Postal</label>
@@ -364,7 +457,7 @@ const DashboardCliente = ({ userId }) => {
               </div>
             </div>
           </div>
-  
+
           {/* Card con animación de giro para Servicio Actual */}
           <div
             className={`bg-white shadow-lg rounded-lg p-4 h-96 transform transition-transform duration-500 ${
@@ -421,9 +514,9 @@ const DashboardCliente = ({ userId }) => {
                     ) : (
                       <div className="flex flex-col items-center mt-4">
                         <ul className="list-disc list-inside">
-                          <li>{servicioActual.recogerMateriales ? "Materiales recogidos" : "Materiales pendientes"}</li>
+                          <li>{servicioActual.recogerMateriales ? "Materiales recogidos " : "Materiales pendientes"}</li>
                           <li>{servicioActual.dirigirseDireccion ? "En camino a la dirección" : "Dirección pendiente"}</li>
-                          <li>{servicioActual.concluirTrabajo ? "Trabajo concluido" : "Trabajo pendiente"}</li>
+                          <li>{servicioActual.concluirTrabajo ? "Trabajo: concluido" : "Trabajo pendiente"}</li>
                         </ul>
                       </div>
                     )}
