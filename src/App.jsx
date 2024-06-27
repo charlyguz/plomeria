@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Login from './Login/Login';
 import DashboardCliente from './Dashboard/DashboardCliente';
@@ -8,7 +7,7 @@ import Register from './Register/Register';
 
 function App() {
   return (
-    <Router>
+    <Router basename="/plomeria">
       <Routes>
         <Route path="/" element={<Login />} />
         <Route path="/login" element={<Login />} />
