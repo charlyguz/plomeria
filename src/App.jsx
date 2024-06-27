@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route } from 'react-router-dom';
 import Login from './Login/Login';
 import DashboardCliente from './Dashboard/DashboardCliente';
 import DashboardTecnico from './Dashboard/DashboardTecnico';
@@ -7,7 +7,7 @@ import Register from './Register/Register';
 
 function App() {
   return (
-    <Router basename="/plomeria">
+    <Router basename="/">
       <Routes>
         <Route path="/" element={<Login />} />
         <Route path="/login" element={<Login />} />
