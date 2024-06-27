@@ -8,37 +8,43 @@ const Register = () => {
   const [errors, setErrors] = useState({});
   const [successMessage, setSuccessMessage] = useState('');
 
+  const validateForm = () => {
+    const errors = {};
+    if (!email || !/\S+@\S+\.\S+/.test(email)) errors.email = "Correo electrónico inválido";
+    if (!password) errors.password = "Contraseña es requerida";
+    if (password !== confirmPassword) errors.confirmPassword = "Las contraseñas no coinciden";
+    return errors;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Validation
-    if (password !== confirmPassword) {
-      setErrors({ confirmPassword: 'Passwords do not match' });
-      return;
-    }
+    const errors = validateForm();
+    setErrors(errors);
+    if (Object.keys(errors).length === 0) {
+      try {
+        const response = await axios.post('http://localhost:3002/api/persona', {
+          CorreoElectronico: email,
+          Contrasena: password,
+          Rol: 'Cliente'
+        },{
+          withCredentials: true
+        });
 
-    try {
-      const response = await axios.post('http://localhost:3002/api/persona', {
-        CorreoElectronico: email,
-        Contrasena: password,
-        Rol: 'Cliente'
-      },{
-        withCredentials: true
-      });
-
-      console.log(response.data);
-      // Clear the form, redirect, or show a success message
-      setEmail('');
-      setPassword('');
-      setConfirmPassword('');
-      setErrors({});
-      setSuccessMessage('Registro exitoso. Por favor, inicie sesión.');
-    } catch (error) {
-      console.error('Error registering:', error);
-      if (error.response && error.response.data && error.response.data.errors) {
-        setErrors(error.response.data.errors); // Set errors from backend
-      } else {
-        setErrors({ general: 'An error occurred during registration.' });
+        console.log(response.data);
+        // Clear the form, redirect, or show a success message
+        setEmail('');
+        setPassword('');
+        setConfirmPassword('');
+        setErrors({});
+        setSuccessMessage('Registro exitoso. Por favor, inicie sesión.');
+      } catch (error) {
+        console.error('Error registering:', error);
+        if (error.response && error.response.data && error.response.data.errors) {
+          setErrors(error.response.data.errors); // Set errors from backend
+        } else {
+          setErrors({ general: 'An error occurred during registration.' });
+        }
       }
     }
   };
@@ -65,8 +71,9 @@ const Register = () => {
               placeholder="Correo Electrónico"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              required
             />
-            {errors.CorreoElectronico && <p className="error-message">{errors.CorreoElectronico}</p>}
+            {errors.email && <p className="text-red-500 text-xs italic">{errors.email}</p>}
           </div>
 
           {/* Password Input */}
@@ -79,8 +86,9 @@ const Register = () => {
               placeholder="Clave de Acceso"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              required
             />
-            {errors.Contrasena && <p className="error-message">{errors.Contrasena}</p>}
+            {errors.password && <p className="text-red-500 text-xs italic">{errors.password}</p>}
           </div>
 
           {/* Confirm Password Input */}
@@ -93,8 +101,9 @@ const Register = () => {
               placeholder="Confirmar Clave de Acceso"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
+              required
             />
-            {errors.confirmPassword && <p className="error-message">{errors.confirmPassword}</p>}
+            {errors.confirmPassword && <p className="text-red-500 text-xs italic">{errors.confirmPassword}</p>}
           </div>
 
           {/* Submit Button */}
@@ -117,7 +126,7 @@ const Register = () => {
           {successMessage && <p className="text-green-500 mt-4">{successMessage}</p>}
 
           {/* General Error Message */}
-          {errors.general && <p className="error-message">{errors.general}</p>}
+          {errors.general && <p className="text-red-500 text-xs italic">{errors.general}</p>}
         </form>
       </div>
     </div>

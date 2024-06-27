@@ -109,9 +109,9 @@ CREATE TABLE IF NOT EXISTS `persona` (
 
 -- Dumping data for table plomeria.persona: ~5 rows (approximately)
 INSERT INTO `persona` (`ID_Persona`, `CorreoElectronico`, `Contrasena`, `Nombre`, `Rol`, `Disponible`) VALUES
-	(2, 'admin@a', '$2b$10$sLrfWi5kc.iWVYO6Yow2Ae2T84oVRyoN4RMAztDHukjnm/R6ygco2', 'Admin', 'Gerente', 1),
-	(4, 'tecnico1@test', '$2b$10$SX4KuF.jGhagPJkaZkie.u8LSGMBdjC34sppe8aD4.xy2jYNggIe2', 'tecnico 1', 'Tecnico', 1),
-	(5, 'tecnico2@test', '$2b$10$4mN37UjMix6.fSXjMe1HA.fTbuZ60pZbOLPQRdOw4jq12JRcPq8Ji', 'tecnico 2', 'Tecnico', 1),
+	(2, 'admin@a.com', '$2b$10$4mN37UjMix6.fSXjMe1HA.fTbuZ60pZbOLPQRdOw4jq12JRcPq8Ji', 'Admin', 'Gerente', 1),
+	(4, 'tecnico1@test.com', '$2b$10$4mN37UjMix6.fSXjMe1HA.fTbuZ60pZbOLPQRdOw4jq12JRcPq8Ji', 'tecnico 1', 'Tecnico', 1),
+	(5, 'tecnico2@test.com', '$2b$10$4mN37UjMix6.fSXjMe1HA.fTbuZ60pZbOLPQRdOw4jq12JRcPq8Ji', 'tecnico 2', 'Tecnico', 1),
 	(6, 'cliente1@test.com', '$2b$10$4mN37UjMix6.fSXjMe1HA.fTbuZ60pZbOLPQRdOw4jq12JRcPq8Ji', 'Cliente 1', 'Cliente', 1),
 	(7, 'cliente2@test.com', '$2b$10$4mN37UjMix6.fSXjMe1HA.fTbuZ60pZbOLPQRdOw4jq12JRcPq8Ji', 'Cliente 2', 'Cliente', 1);
 

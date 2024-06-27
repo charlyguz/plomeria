@@ -10,6 +10,7 @@ const Estadisticas = () => {
     const fetchEstadisticas = async () => {
       try {
         const response = await axios.get('http://localhost:3002/api/estadisticas', { withCredentials: true });
+        console.log('Estadísticas recibidas:', response.data); // Log the received data
         setStats(response.data);
         setLoading(false);
       } catch (err) {
@@ -33,7 +34,7 @@ const Estadisticas = () => {
           <h3 className="text-lg font-semibold mb-2">Servicios Solicitados y Completados</h3>
           <p>Total Solicitados: {stats.totalSolicitados}</p>
           <p>Total Completados: {stats.totalCompletados}</p>
-          <p>Pendientes: {stats.totalSolicitados - stats.totalCompletados}</p>
+          <p>Pendientes: {stats.totalSolicitados && stats.totalCompletados ? stats.totalSolicitados - stats.totalCompletados : 0}</p>
         </div>
         <div className="bg-gray-100 p-4 rounded-lg">
           <h3 className="text-lg font-semibold mb-2">Tiempo Promedio</h3>
@@ -42,37 +43,37 @@ const Estadisticas = () => {
         </div>
         <div className="bg-gray-100 p-4 rounded-lg">
           <h3 className="text-lg font-semibold mb-2">Rendimiento de Técnicos</h3>
-          {stats.rendimientoTecnicos.map((tecnico, index) => (
+          {stats.rendimientoTecnicos && stats.rendimientoTecnicos.map((tecnico, index) => (
             <p key={index}>{tecnico.Nombre}: {tecnico.servicios} servicios</p>
           ))}
         </div>
         <div className="bg-gray-100 p-4 rounded-lg">
           <h3 className="text-lg font-semibold mb-2">Utilización de Materiales</h3>
-          {stats.utilizacionMateriales.map((material, index) => (
+          {stats.utilizacionMateriales && stats.utilizacionMateriales.map((material, index) => (
             <p key={index}>{material.Nombre}: {material.cantidad}</p>
           ))}
         </div>
         <div className="bg-gray-100 p-4 rounded-lg">
           <h3 className="text-lg font-semibold mb-2">Costos y Beneficios</h3>
-          <p>Costos Totales: ${stats.costosYBeneficios.costos} MXN</p>
-          <p>Ingresos Totales: ${stats.costosYBeneficios.ingresos} MXN</p>
-          <p>Beneficio Neto: ${stats.costosYBeneficios.beneficioNeto} MXN</p>
+          <p>Costos Totales: ${stats.costosYBeneficios?.costos} MXN</p>
+          <p>Ingresos Totales: ${stats.costosYBeneficios?.ingresos} MXN</p>
+          <p>Beneficio Neto: ${stats.costosYBeneficios?.beneficioNeto} MXN</p>
         </div>
         <div className="bg-gray-100 p-4 rounded-lg">
           <h3 className="text-lg font-semibold mb-2">Calificaciones de Técnicos</h3>
-          {stats.calificacionesTecnicos.map((tecnico, index) => (
+          {stats.calificacionesTecnicos && stats.calificacionesTecnicos.map((tecnico, index) => (
             <p key={index}>{tecnico.Nombre}: {tecnico.calificacion} estrellas</p>
           ))}
         </div>
         <div className="bg-gray-100 p-4 rounded-lg">
           <h3 className="text-lg font-semibold mb-2">Estado de los Trabajos</h3>
-          {stats.estadoTrabajos.map((estado, index) => (
+          {stats.estadoTrabajos && stats.estadoTrabajos.map((estado, index) => (
             <p key={index}>{estado.Estado}: {estado.cantidad}</p>
           ))}
         </div>
         <div className="bg-gray-100 p-4 rounded-lg">
           <h3 className="text-lg font-semibold mb-2">Evidencia de Trabajos</h3>
-          {stats.evidencias.map((evidencia, index) => (
+          {stats.evidencias && stats.evidencias.map((evidencia, index) => (
             <p key={index}>{evidencia.Nombre}: {evidencia.evidencias} evidencias subidas</p>
           ))}
         </div>

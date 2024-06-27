@@ -84,6 +84,65 @@ const DashboardCliente = () => {
     }
   };
 
+  const validateForm = () => {
+    const errors = {};
+    if (!formData.TipoServicio) errors.TipoServicio = "Tipo de servicio es requerido";
+    if (!formData.Calle) errors.Calle = "Calle es requerida";
+    if (!formData.NumeroExterior) errors.NumeroExterior = "Número Exterior es requerido";
+    if (!formData.Colonia) errors.Colonia = "Colonia es requerida";
+    if (!formData.Alcaldia) errors.Alcaldia = "Alcaldía es requerida";
+    if (!formData.CodigoPostal || !/^\d{5}$/.test(formData.CodigoPostal)) errors.CodigoPostal = "Código Postal inválido";
+    return errors;
+  };
+
+  const handleSolicitarServicioSubmit = async (e) => {
+    e.preventDefault();
+
+    const errors = validateForm();
+    setFormErrors(errors);
+    if (Object.keys(errors).length === 0) {
+      try {
+        const response = await axios.post('http://localhost:3002/api/servicios', {
+          TipoServicio: formData.TipoServicio,
+          Direccion: {
+            Calle: formData.Calle,
+            NumeroExterior: formData.NumeroExterior,
+            NumeroInterior: formData.NumeroInterior,
+            Colonia: formData.Colonia,
+            Alcaldia: formData.Alcaldia,
+            CodigoPostal: formData.CodigoPostal
+          }
+        }, {
+          withCredentials: true
+        });
+
+        console.log(response.data);
+        // Clear the form and show a success message
+        setFormData({
+          TipoServicio: "",
+          Calle: "",
+          NumeroExterior: "",
+          NumeroInterior: "",
+          Colonia: "",
+          Alcaldia: "",
+          CodigoPostal: ""
+        });
+        setFormErrors({});
+        setFlippedSolicitar(false);
+        alert("Servicio solicitado con éxito. Un técnico ha sido asignado.");
+        setFlippedSolicitar(false);
+        fetchServices(); // Refresh the list of services
+      } catch (error) {
+        console.error("Error submitting service request:", error);
+        if (error.response && error.response.data && error.response.data.error) {
+          alert(error.response.data.error);
+        } else {
+          setFormErrors({ general: "An error occurred during submission." });
+        }
+      }
+    }
+  };
+
   const handleSolicitarServicio = async () => {
     if (servicioActual) {
       alert("No puede solicitar más de un servicio a la vez");
@@ -122,50 +181,6 @@ const DashboardCliente = () => {
       navigate('/login');
     } catch (error) {
       console.error('Error during logout:', error);
-    }
-  };
-
-  const handleSolicitarServicioSubmit = async (e) => {
-    e.preventDefault();
-
-    try {
-      const response = await axios.post('http://localhost:3002/api/servicios', {
-        TipoServicio: formData.TipoServicio,
-        Direccion: {
-          Calle: formData.Calle,
-          NumeroExterior: formData.NumeroExterior,
-          NumeroInterior: formData.NumeroInterior,
-          Colonia: formData.Colonia,
-          Alcaldia: formData.Alcaldia,
-          CodigoPostal: formData.CodigoPostal
-        }
-      }, {
-        withCredentials: true
-      });
-
-      console.log(response.data);
-      // Clear the form and show a success message
-      setFormData({
-        TipoServicio: "",
-        Calle: "",
-        NumeroExterior: "",
-        NumeroInterior: "",
-        Colonia: "",
-        Alcaldia: "",
-        CodigoPostal: ""
-      });
-      setFormErrors({});
-      setFlippedSolicitar(false);
-      alert("Servicio solicitado con éxito. Un técnico ha sido asignado.");
-      setFlippedSolicitar(false);
-      fetchServices(); // Refresh the list of services
-    } catch (error) {
-      console.error("Error submitting service request:", error);
-      if (error.response && error.response.data && error.response.data.error) {
-        alert(error.response.data.error);
-      } else {
-        setFormErrors({ general: "An error occurred during submission." });
-      }
     }
   };
 
@@ -355,6 +370,7 @@ const DashboardCliente = () => {
                         Instalación de calentador de agua
                       </option>
                     </select>
+                    {formErrors.TipoServicio && <p className="text-red-500 text-xs italic">{formErrors.TipoServicio}</p>}
                   </div>
                   <div>
                     <label className="block text-gray-700">Calle</label>
@@ -365,7 +381,9 @@ const DashboardCliente = () => {
                       onChange={handleInputChange}
                       type="text"
                       placeholder="Calle"
+                      required
                     />
+                    {formErrors.Calle && <p className="text-red-500 text-xs italic">{formErrors.Calle}</p>}
                   </div>
                   <div className="flex space-x-4">
                     <div className="w-1/2">
@@ -379,7 +397,9 @@ const DashboardCliente = () => {
                         onChange={handleInputChange}
                         type="text"
                         placeholder="Número Exterior"
+                        required
                       />
+                      {formErrors.NumeroExterior && <p className="text-red-500 text-xs italic">{formErrors.NumeroExterior}</p>}
                     </div>
                     <div className="w-1/2">
                       <label className="block text-gray-700">
@@ -402,6 +422,7 @@ const DashboardCliente = () => {
                       name="Alcaldia"
                       value={formData.Alcaldia}
                       onChange={handleInputChange}
+                      required
                     >
                       <option value="">Seleccione una alcaldía</option>
                       {alcaldias.map((alcaldia) => (
@@ -410,6 +431,7 @@ const DashboardCliente = () => {
                         </option>
                       ))}
                     </select>
+                    {formErrors.Alcaldia && <p className="text-red-500 text-xs italic">{formErrors.Alcaldia}</p>}
                   </div>
                   <div>
                     <label className="block text-gray-700">Colonia</label>
@@ -419,6 +441,7 @@ const DashboardCliente = () => {
                       value={formData.Colonia}
                       onChange={handleInputChange}
                       disabled={!formData.Alcaldia}
+                      required
                     >
                       <option value="">Seleccione una colonia</option>
                       {formData.Alcaldia &&
@@ -428,6 +451,7 @@ const DashboardCliente = () => {
                           </option>
                         ))}
                     </select>
+                    {formErrors.Colonia && <p className="text-red-500 text-xs italic">{formErrors.Colonia}</p>}
                   </div>
                   <div>
                     <label className="block text-gray-700">Código Postal</label>
@@ -438,7 +462,9 @@ const DashboardCliente = () => {
                       onChange={handleInputChange}
                       type="text"
                       placeholder="Código Postal"
+                      required
                     />
+                    {formErrors.CodigoPostal && <p className="text-red-500 text-xs italic">{formErrors.CodigoPostal}</p>}
                   </div>
                   <button
                     className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"

@@ -9,24 +9,44 @@ const Login = () => {
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
+  const validateForm = () => {
+    const errors = {};
+    if (!email || !/\S+@\S+\.\S+/.test(email)) errors.email = "Correo electrónico inválido";
+    if (!password) errors.password = "Contraseña es requerida";
+    return errors;
+  };
+
   const handleLogin = async () => {
-    try {
-      const response = await axios.post('http://localhost:3002/api/login', {
-        CorreoElectronico: email,
-        Contrasena: password,
-      }, {
-        withCredentials: true,
-      });
+    const errors = validateForm();
+    setError('');
+    if (Object.keys(errors).length === 0) {
+      try {
+        const response = await axios.post('http://localhost:3002/api/login', {
+          CorreoElectronico: email,
+          Contrasena: password,
+        }, {
+          withCredentials: true,
+        });
 
-      console.log("Response Data: ", response.data); // Log the response data
+        console.log("Response Data: ", response.data); // Log the response data
 
-      if (response.data.user) {
-        setError('');
-        navigate(`/dashboard/${userType}`);
+        if (response.data.user) {
+          const user = response.data.user;
+          if (user.Rol.toLowerCase() === userType.toLowerCase()) {
+            setError('');
+            navigate(`/dashboard/${userType}`);
+          } else {
+            setError('No tienes permiso para acceder a este dashboard');
+          }
+        } else {
+          setError('Invalid credentials');
+        }
+      } catch (error) {
+        console.error('Error during login:', error);
+        setError('Invalid credentials');
       }
-    } catch (error) {
-      console.error('Error during login:', error);
-      setError('Invalid credentials');
+    } else {
+      setError('Formulario inválido');
     }
   };
 
@@ -77,6 +97,7 @@ const Login = () => {
               placeholder="Email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              required
             />
           </div>
           <div className="mb-6">
@@ -90,6 +111,7 @@ const Login = () => {
               placeholder="***********"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              required
             />
           </div>
           {error && <p className="text-red-500 text-xs italic">{error}</p>}

@@ -46,7 +46,17 @@ async function hashPassword(password) {
 // --- API Endpoints ---
 app.post('/api/persona', async (req, res) => {
   try {
-    const { CorreoElectronico, Contrasena, Rol, Nombre } = req.body; 
+    const { CorreoElectronico, Contrasena, Rol, Nombre } = req.body;
+    
+    if (!CorreoElectronico || !/\S+@\S+\.\S+/.test(CorreoElectronico)) {
+      return res.status(400).json({ error: 'Correo electrónico inválido' });
+    }
+    if (!Contrasena) {
+      return res.status(400).json({ error: 'Contraseña es requerida' });
+    }
+    if (!Nombre) {
+      return res.status(400).json({ error: 'Nombre es requerido' });
+    }
     const hashedPassword = await hashPassword(Contrasena);
     
     const conn = await pool.getConnection();
@@ -63,16 +73,15 @@ app.post('/api/persona', async (req, res) => {
   }
 });
 
+
 app.post('/api/servicios', async (req, res) => {
   try {
     const { TipoServicio, Direccion } = req.body;
 
-    // Verificar si el usuario está en la sesión
     if (!req.session.user || !req.session.user.ID_Persona) {
       return res.status(401).json({ error: 'User not authenticated' });
     }
 
-    // Verificar si el cliente ya tiene un servicio en curso
     const conn = await pool.getConnection();
     const existingService = await conn.query(
       'SELECT * FROM Servicio WHERE ID_Cliente = ? AND Estado != "Completado"',
@@ -96,12 +105,10 @@ app.post('/api/servicios', async (req, res) => {
       [Direccion.Calle, Direccion.NumeroExterior, Direccion.NumeroInterior, Direccion.Colonia, Direccion.Alcaldia, Direccion.CodigoPostal]
     );
 
-    // Buscar un técnico disponible en la misma alcaldía
     let tecnicoResult = await conn.query(
       'SELECT * FROM Persona WHERE Rol = "Tecnico" AND Disponible = 1 AND ID_Persona NOT IN (SELECT ID_Tecnico FROM Servicio WHERE Estado IN ("Aceptado", "En Camino", "En Proceso")) ORDER BY ID_Persona LIMIT 1'
     );
 
-    // Si no se encuentra técnico en la misma alcaldía, buscar en toda la ciudad
     if (tecnicoResult.length === 0) {
       tecnicoResult = await conn.query(
         'SELECT * FROM Persona WHERE Rol = "Tecnico" AND Disponible = 1 AND ID_Persona NOT IN (SELECT ID_Tecnico FROM Servicio WHERE Estado IN ("Aceptado", "En Camino", "En Proceso")) ORDER BY ID_Persona LIMIT 1'
@@ -129,6 +136,7 @@ app.post('/api/servicios', async (req, res) => {
     res.status(500).json({ error: 'Failed to add Servicio' });
   }
 });
+
 
 
 
@@ -288,6 +296,8 @@ app.get('/api/test-db', async (req, res) => {
   }
 });
 
+
+// Endpoint para login
 // Endpoint para login
 app.post('/api/login', async (req, res) => {
   try {
@@ -314,6 +324,8 @@ app.post('/api/login', async (req, res) => {
     res.status(500).json({ error: 'An error occurred during login' });
   }
 });
+
+
 
 // Endpoint para logout
 app.post('/api/logout', (req, res) => {
@@ -361,16 +373,19 @@ app.put('/api/material/:id', async (req, res) => {
   }
 });
 
-// Endpoint to get statistics
 // Endpoint para obtener estadísticas
 app.get('/api/estadisticas', async (req, res) => {
   try {
     const conn = await pool.getConnection();
 
     const [totalSolicitados] = await conn.query('SELECT COUNT(*) as total FROM Servicio');
-    const [totalCompletados] = await conn.query('SELECT COUNT(*) as total FROM Servicio WHERE Estado = "Completado"');
+    console.log('Total Solicitados:', totalSolicitados[0]?.total);
+
+    const [totalCompletados] = await conn.query('SELECT COUNT(*) as total FROM Servicio WHERE FechaCompletado IS NOT NULL');
+    console.log('Total Completados:', totalCompletados[0]?.total);
+
     const [tiempoPromedioRespuesta] = await conn.query('SELECT AVG(TIMESTAMPDIFF(HOUR, FechaSolicitud, FechaSolicitud)) as promedio FROM Servicio');
-    const [tiempoPromedioFinalizacion] = await conn.query('SELECT AVG(TIMESTAMPDIFF(HOUR, FechaSolicitud, FechaCompletado)) as promedio FROM Servicio WHERE Estado = "Completado"');
+    const [tiempoPromedioFinalizacion] = await conn.query('SELECT AVG(TIMESTAMPDIFF(HOUR, FechaSolicitud, FechaCompletado)) as promedio FROM Servicio WHERE FechaCompletado IS NOT NULL');
     const rendimientoTecnicos = await conn.query('SELECT Persona.Nombre, COUNT(*) as servicios FROM Persona JOIN Servicio ON Persona.ID_Persona = Servicio.ID_Tecnico WHERE Persona.Rol = "Tecnico" GROUP BY Persona.Nombre');
     const utilizacionMateriales = await conn.query('SELECT Material.Nombre, SUM(DetalleServicioMaterial.CantidadUtilizada) as cantidad FROM Material JOIN DetalleServicioMaterial ON Material.ID_Material = DetalleServicioMaterial.ID_Material GROUP BY Material.Nombre');
     const [costosYBeneficios] = await conn.query('SELECT SUM(CostoTotal) as ingresos, IFNULL(SUM(Material.CostoUnitario * DetalleServicioMaterial.CantidadUtilizada), 0) as costos FROM Servicio LEFT JOIN DetalleServicioMaterial ON Servicio.ID_Servicio = DetalleServicioMaterial.ID_Servicio LEFT JOIN Material ON DetalleServicioMaterial.ID_Material = Material.ID_Material');
@@ -389,27 +404,37 @@ app.get('/api/estadisticas', async (req, res) => {
       return obj;
     };
 
-    res.json({
-      totalSolicitados: Number(totalSolicitados[0]?.total || 0),
-      totalCompletados: Number(totalCompletados[0]?.total || 0),
-      tiempoPromedioRespuesta: Number(tiempoPromedioRespuesta[0]?.promedio || 0),
-      tiempoPromedioFinalizacion: Number(tiempoPromedioFinalizacion[0]?.promedio || 0),
+    const response = {
+      totalSolicitados: totalSolicitados[0]?.total ? Number(totalSolicitados[0].total) : 0,
+      totalCompletados: totalCompletados[0]?.total ? Number(totalCompletados[0].total) : 0,
+      tiempoPromedioRespuesta: tiempoPromedioRespuesta[0]?.promedio ? Number(tiempoPromedioRespuesta[0].promedio) : 0,
+      tiempoPromedioFinalizacion: tiempoPromedioFinalizacion[0]?.promedio ? Number(tiempoPromedioFinalizacion[0].promedio) : 0,
       rendimientoTecnicos: rendimientoTecnicos.map(convertBigIntToNumber),
       utilizacionMateriales: utilizacionMateriales.map(convertBigIntToNumber),
       costosYBeneficios: convertBigIntToNumber({
-        ingresos: costosYBeneficios.ingresos || 0,
-        costos: costosYBeneficios.costos || 0,
-        beneficioNeto: (costosYBeneficios.ingresos || 0) - (costosYBeneficios.costos || 0)
+        ingresos: costosYBeneficios[0]?.ingresos || 0,
+        costos: costosYBeneficios[0]?.costos || 0,
+        beneficioNeto: (costosYBeneficios[0]?.ingresos || 0) - (costosYBeneficios[0]?.costos || 0)
       }),
       calificacionesTecnicos: calificacionesTecnicos.map(convertBigIntToNumber),
       estadoTrabajos: estadoTrabajos.map(convertBigIntToNumber),
       evidencias: evidencias.map(convertBigIntToNumber)
-    });
+    };
+
+    console.log('Estadísticas enviadas:', response);
+
+    res.json(response);
   } catch (err) {
     console.error('Error fetching statistics:', err);
     res.status(500).json({ error: 'Failed to fetch statistics' });
   }
 });
+
+
+
+
+
+
 
 
 // Endpoint para obtener servicios de un usuario en particular
