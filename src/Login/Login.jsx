@@ -21,7 +21,7 @@ const Login = () => {
     setError('');
     if (Object.keys(errors).length === 0) {
       try {
-        const response = await axios.post('http://localhost:3002/api/login', {
+        const response = await axios.post('plomeria-backend.azurewebsites.net/api/login', {
           CorreoElectronico: email,
           Contrasena: password,
         }, {

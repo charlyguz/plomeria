@@ -15,7 +15,7 @@ const DashboardGerente = () => {
 
   const handleLogout = async () => {
     try {
-      await axios.post('http://localhost:3002/api/logout', {}, { withCredentials: true });
+      await axios.post('plomeria-backend.azurewebsites.net/api/logout', {}, { withCredentials: true });
       navigate('/login');
     } catch (error) {
       console.error('Error during logout:', error);

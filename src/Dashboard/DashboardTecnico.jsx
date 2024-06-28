@@ -69,7 +69,7 @@ const DashboardTecnico = () => {
       return; // Si ya está en curso la misma solicitud, no hacer nada
     }
     try {
-      const response = await axios.get(`http://localhost:3002/api/servicios/${solicitud.ID_Servicio}/progreso`, { withCredentials: true });
+      const response = await axios.get(`plomeria-backend.azurewebsites.net/api/servicios/${solicitud.ID_Servicio}/progreso`, { withCredentials: true });
       const progreso = response.data;
 
       setSolicitudSeleccionada(solicitud);
@@ -101,7 +101,7 @@ const DashboardTecnico = () => {
       await actualizarEstadoServicio(reparacionEnCurso.ID_Servicio, 'Aceptado');
       
       // Enviar materiales al servidor
-      await axios.post(`http://localhost:3002/api/servicios/${reparacionEnCurso.ID_Servicio}/materiales`, { materiales: materialesParaEnviar }, { withCredentials: true });
+      await axios.post(`plomeria-backend.azurewebsites.net/api/servicios/${reparacionEnCurso.ID_Servicio}/materiales`, { materiales: materialesParaEnviar }, { withCredentials: true });
   
       fetchServices();  // Refresca los servicios después de actualizar el estado
     }
@@ -117,7 +117,7 @@ const DashboardTecnico = () => {
     formData.append('estado', 'Esperando Calificación');
   
     try {
-      await axios.put(`http://localhost:3002/api/servicios/${reparacionEnCurso.ID_Servicio}`, formData, {
+      await axios.put(`plomeria-backend.azurewebsites.net/api/servicios/${reparacionEnCurso.ID_Servicio}`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         },
@@ -144,7 +144,7 @@ const DashboardTecnico = () => {
 
   const actualizarEstadoServicio = async (idServicio, estado) => {
     try {
-      await axios.put(`http://localhost:3002/api/servicios/${idServicio}`, {
+      await axios.put(`plomeria-backend.azurewebsites.net/api/servicios/${idServicio}`, {
         estado
       }, { withCredentials: true });
       setReparacionEnCurso((prev) => ({ ...prev, Estado: estado }));
@@ -155,7 +155,7 @@ const DashboardTecnico = () => {
 
   const actualizarProgresoServicio = async (idServicio, progreso) => {
     try {
-      await axios.put(`http://localhost:3002/api/servicios/${idServicio}/progreso`, progreso, { withCredentials: true });
+      await axios.put(`plomeria-backend.azurewebsites.net/api/servicios/${idServicio}/progreso`, progreso, { withCredentials: true });
     } catch (error) {
       console.error('Error actualizando progreso del servicio:', error);
     }
@@ -163,7 +163,7 @@ const DashboardTecnico = () => {
 
   const handleLogout = async () => {
     try {
-      await axios.post('http://localhost:3002/api/logout', {}, { withCredentials: true });
+      await axios.post('plomeria-backend.azurewebsites.net/api/logout', {}, { withCredentials: true });
       navigate('/login');
     } catch (error) {
       console.error('Error during logout:', error);
@@ -172,7 +172,7 @@ const DashboardTecnico = () => {
 
   const fetchServices = async () => {
     try {
-      const response = await axios.get('http://localhost:3002/api/servicios', {
+      const response = await axios.get('plomeria-backend.azurewebsites.net/api/servicios', {
         withCredentials: true
       });
       setServicios(response.data);

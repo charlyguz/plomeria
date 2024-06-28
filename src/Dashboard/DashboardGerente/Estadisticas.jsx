@@ -9,7 +9,7 @@ const Estadisticas = () => {
   useEffect(() => {
     const fetchEstadisticas = async () => {
       try {
-        const response = await axios.get('http://localhost:3002/api/estadisticas', { withCredentials: true });
+        const response = await axios.get('plomeria-backend.azurewebsites.net/api/estadisticas', { withCredentials: true });
         console.log('Estadísticas recibidas:', response.data); // Log the received data
         setStats(response.data);
         setLoading(false);

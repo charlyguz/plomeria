@@ -14,7 +14,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'http://localhost:3002',
+        target: 'plomeria-backend.azurewebsites.net',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, '')
       }

@@ -102,7 +102,7 @@ const DashboardCliente = () => {
     setFormErrors(errors);
     if (Object.keys(errors).length === 0) {
       try {
-        const response = await axios.post('http://localhost:3002/api/servicios', {
+        const response = await axios.post('plomeria-backend.azurewebsites.net/api/servicios', {
           TipoServicio: formData.TipoServicio,
           Direccion: {
             Calle: formData.Calle,
@@ -149,7 +149,7 @@ const DashboardCliente = () => {
       return;
     }
     try {
-      const response = await axios.get(`http://localhost:3002/api/servicios/${sessionUser?.ID_Persona}`, { withCredentials: true });
+      const response = await axios.get(`plomeria-backend.azurewebsites.net/api/servicios/${sessionUser?.ID_Persona}`, { withCredentials: true });
       const currentService = response.data.find(servicio => servicio.Estado !== 'Completado' && servicio.Estado !== 'Pendiente');
       if (currentService) {
         alert("No puede solicitar más de un servicio a la vez");
@@ -177,7 +177,7 @@ const DashboardCliente = () => {
 
   const handleLogout = async () => {
     try {
-      await axios.post('http://localhost:3002/api/logout', {}, { withCredentials: true });
+      await axios.post('plomeria-backend.azurewebsites.net/api/logout', {}, { withCredentials: true });
       navigate('/login');
     } catch (error) {
       console.error('Error during logout:', error);
@@ -187,7 +187,7 @@ const DashboardCliente = () => {
   const handleCalificarTecnico = async () => {
     try {
       console.log('Calificando servicio:', servicioActual);
-      await axios.put(`http://localhost:3002/api/servicios/${servicioActual.ID_Servicio}`, {
+      await axios.put(`plomeria-backend.azurewebsites.net/api/servicios/${servicioActual.ID_Servicio}`, {
         estado: 'Completado',
         calificacion: calificacion
       }, {
@@ -219,7 +219,7 @@ const DashboardCliente = () => {
   const fetchServices = async () => {
     try {
       console.log(`Fetching services for user ${sessionUser?.ID_Persona}`);
-      const response = await axios.get(`http://localhost:3002/api/servicios/${sessionUser?.ID_Persona}`, { withCredentials: true });
+      const response = await axios.get(`plomeria-backend.azurewebsites.net/api/servicios/${sessionUser?.ID_Persona}`, { withCredentials: true });
       console.log('Servicios recibidos:', response.data);
       setServicios(response.data);
       setLoading(false);
@@ -239,7 +239,7 @@ const DashboardCliente = () => {
 
   const fetchSessionUser = async () => {
     try {
-      const response = await axios.get('http://localhost:3002/api/session', { withCredentials: true });
+      const response = await axios.get('plomeria-backend.azurewebsites.net/api/session', { withCredentials: true });
       console.log('Session user:', response.data.user);
       setSessionUser(response.data.user);
     } catch (error) {
