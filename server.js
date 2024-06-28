@@ -15,9 +15,10 @@ const dbConfig = {
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   server: process.env.DB_HOST,
+  port: parseInt(process.env.DB_PORT, 10),  // Added port configuration
   database: process.env.DB_NAME,
   options: {
-    encrypt: true, // Usar esta opción si estás en Azure
+    encrypt: true, // Use this option if you're on Azure
     enableArithAbort: true
   }
 };
@@ -307,15 +308,20 @@ function calculateCostoTotal(tipoServicio) {
 
 // Endpoint de prueba de conexión a la base de datos
 app.get('/api/test-db', async (req, res) => {
+  let pool;
   try {
-    const pool = await sql.connect(dbConfig);
+    console.log('Connecting to the database...');
+    pool = await sql.connect(dbConfig);
+    console.log('Database connection established.');
     const result = await pool.request().query('SELECT 1 as val');
     res.json({ message: 'Database connection successful', result: result.recordset });
   } catch (err) {
     console.error('Error connecting to the database:', err);
-    res.status(500).json({ error: 'Database connection failed' });
+    res.status(500).json({ error: 'Database connection failed', details: err.message });
   } finally {
-    sql.close();
+    if (pool) {
+      pool.close();
+    }
   }
 });
 
