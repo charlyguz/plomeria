@@ -16,6 +16,7 @@ const DashboardCliente = () => {
   const [userMenuVisible, setUserMenuVisible] = useState(false);
   const [servicioActual, setServicioActual] = useState(null);
   const [calificacion, setCalificacion] = useState('');
+  const [comentario, setComentario] = useState('');
   const [sessionUser, setSessionUser] = useState(null);
   const navigate = useNavigate();
 
@@ -189,13 +190,15 @@ const DashboardCliente = () => {
       console.log('Calificando servicio:', servicioActual);
       await axios.put(`http://localhost:3002/api/servicios/${servicioActual.ID_Servicio}`, {
         estado: 'Completado',
-        calificacion: calificacion
+        calificacion: calificacion,
+        comentario: comentario // Enviar el comentario
       }, {
         withCredentials: true
       });
 
       setFlippedServicioActual(false);
       setCalificacion('');
+      setComentario('');
       fetchServices();
       alert('Servicio completado y técnico calificado con éxito.');
     } catch (error) {
@@ -529,6 +532,12 @@ const DashboardCliente = () => {
                           value={calificacion}
                           onChange={(e) => setCalificacion(e.target.value)}
                           placeholder="Calificación (1-5)"
+                        />
+                        <textarea
+                          className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline mt-2"
+                          value={comentario}
+                          onChange={(e) => setComentario(e.target.value)}
+                          placeholder="Deje su comentario (opcional)"
                         />
                         <button
                           className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline mt-4"

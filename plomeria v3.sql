@@ -45,9 +45,9 @@ CREATE TABLE IF NOT EXISTS `direccion` (
   `Alcaldia` varchar(255) NOT NULL,
   `CodigoPostal` varchar(20) NOT NULL,
   PRIMARY KEY (`ID_Direccion`)
-) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=13 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- Dumping data for table plomeria.direccion: ~10 rows (approximately)
+-- Dumping data for table plomeria.direccion: ~12 rows (approximately)
 INSERT INTO `direccion` (`ID_Direccion`, `Calle`, `NumeroExterior`, `NumeroInterior`, `Colonia`, `Alcaldia`, `CodigoPostal`) VALUES
 	(1, 'Calle 1', '123', 'A', 'Colonia 1', 'Alcaldia 1', '12345'),
 	(2, 'Calle 2', '456', 'B', 'Colonia 2', 'Alcaldia 2', '67890'),
@@ -58,7 +58,9 @@ INSERT INTO `direccion` (`ID_Direccion`, `Calle`, `NumeroExterior`, `NumeroInter
 	(7, 'calle inventada ', '123', '123', 'cuautepec', 'gam ', '07100'),
 	(8, '123', '123', '123', '123', '123', '123'),
 	(9, '11', '111', '111', '111', '11', '11'),
-	(10, '1', '1', '1', '1', '1', '1');
+	(10, '1', '1', '1', '1', '1', '1'),
+	(11, '12', '	qq', 'qqq', 'San Ángel', 'Álvaro Obregón', '11111'),
+	(12, '12', 'qq', 'qq', 'Aculco', 'Iztapalapa', '11111');
 
 -- Dumping structure for table plomeria.evidencia
 CREATE TABLE IF NOT EXISTS `evidencia` (
@@ -88,7 +90,7 @@ INSERT INTO `material` (`ID_Material`, `Nombre`, `CostoUnitario`, `CantidadDispo
 	(12, 'Solución sanitizante antibacterial', 46.00, 100),
 	(13, 'Cepillo con extensor', 55.00, 100),
 	(14, 'Tubo de cobre de 1/2', 44.00, 100),
-	(15, 'Codos de 1/2', 59.00, 100),
+	(15, 'Codos de 1/2', 59.00, 105),
 	(16, 'Soldadura', 39.00, 100),
 	(17, 'Tubo de gas butano de 1/2', 51.00, 100),
 	(18, 'Kit de mangueras de agua caliente, fria y gas', 45.00, 100),
@@ -130,6 +132,7 @@ CREATE TABLE IF NOT EXISTS `servicio` (
   `recogerMateriales` tinyint(1) DEFAULT 0,
   `dirigirseDireccion` tinyint(1) DEFAULT 0,
   `concluirTrabajo` tinyint(1) DEFAULT 0,
+  `Comentario` text DEFAULT NULL,
   PRIMARY KEY (`ID_Servicio`),
   KEY `ID_Cliente` (`ID_Cliente`),
   KEY `ID_Tecnico` (`ID_Tecnico`),
@@ -137,16 +140,18 @@ CREATE TABLE IF NOT EXISTS `servicio` (
   CONSTRAINT `servicio_ibfk_1` FOREIGN KEY (`ID_Cliente`) REFERENCES `persona` (`ID_Persona`),
   CONSTRAINT `servicio_ibfk_2` FOREIGN KEY (`ID_Tecnico`) REFERENCES `persona` (`ID_Persona`),
   CONSTRAINT `servicio_ibfk_3` FOREIGN KEY (`ID_Direccion`) REFERENCES `direccion` (`ID_Direccion`)
-) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=13 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- Dumping data for table plomeria.servicio: ~6 rows (approximately)
-INSERT INTO `servicio` (`ID_Servicio`, `TipoServicio`, `CostoTotal`, `Estado`, `ID_Cliente`, `ID_Tecnico`, `ID_Direccion`, `FechaSolicitud`, `FechaCompletado`, `Calificacion`, `recogerMateriales`, `dirigirseDireccion`, `concluirTrabajo`) VALUES
-	(3, 'Mantenimiento preventivo y lavado de tinacos', 580.00, 'Completado', 2, 4, 1, '2024-06-01 10:00:00', '2024-06-01 12:00:00', 4, 1, 1, 1),
-	(4, 'Reparación de fuga de agua', 928.00, 'Completado', 2, 5, 2, '2024-06-02 14:00:00', '2024-06-02 16:00:00', 5, 1, 1, 1),
-	(7, 'Mantenimiento preventivo y lavado de tinacos', 580.00, 'Completado', 6, 5, 7, '2024-06-25 06:57:26', '2024-06-26 21:43:20', 1, 1, 1, 1),
-	(8, 'Reparación de fuga de agua', 928.00, 'Completado', 7, 5, 8, '2024-06-26 21:59:53', '2024-06-26 22:10:09', 5, 1, 1, 1),
-	(9, 'Mantenimiento preventivo y lavado de tinacos', 580.00, 'Completado', 7, 5, 9, '2024-06-26 22:13:05', '2024-06-26 22:33:59', 2, 1, 1, 1),
-	(10, 'Reparación de fuga de agua', 928.00, 'Completado', 7, 5, 10, '2024-06-26 22:34:18', '2024-06-26 23:19:09', 1, 1, 1, 1);
+-- Dumping data for table plomeria.servicio: ~8 rows (approximately)
+INSERT INTO `servicio` (`ID_Servicio`, `TipoServicio`, `CostoTotal`, `Estado`, `ID_Cliente`, `ID_Tecnico`, `ID_Direccion`, `FechaSolicitud`, `FechaCompletado`, `Calificacion`, `recogerMateriales`, `dirigirseDireccion`, `concluirTrabajo`, `Comentario`) VALUES
+	(3, 'Mantenimiento preventivo y lavado de tinacos', 580.00, 'Completado', 2, 4, 1, '2024-06-01 10:00:00', '2024-06-01 12:00:00', 4, 1, 1, 1, NULL),
+	(4, 'Reparación de fuga de agua', 928.00, 'Completado', 2, 5, 2, '2024-06-02 14:00:00', '2024-06-02 16:00:00', 5, 1, 1, 1, NULL),
+	(7, 'Mantenimiento preventivo y lavado de tinacos', 580.00, 'Completado', 6, 5, 7, '2024-06-25 06:57:26', '2024-06-26 21:43:20', 1, 1, 1, 1, NULL),
+	(8, 'Reparación de fuga de agua', 928.00, 'Completado', 7, 5, 8, '2024-06-26 21:59:53', '2024-06-26 22:10:09', 5, 1, 1, 1, NULL),
+	(9, 'Mantenimiento preventivo y lavado de tinacos', 580.00, 'Completado', 7, 5, 9, '2024-06-26 22:13:05', '2024-06-26 22:33:59', 2, 1, 1, 1, NULL),
+	(10, 'Reparación de fuga de agua', 928.00, 'Completado', 7, 5, 10, '2024-06-26 22:34:18', '2024-06-26 23:19:09', 1, 1, 1, 1, NULL),
+	(11, 'Mantenimiento preventivo y lavado de tinacos', 580.00, 'Completado', 6, 4, 11, '2024-06-27 21:56:30', '2024-06-27 21:59:59', 2, 1, 1, 1, 'mal'),
+	(12, 'Mantenimiento preventivo y lavado de tinacos', 580.00, 'Completado', 6, 4, 12, '2024-06-27 22:02:47', '2024-06-27 22:05:08', 4, 1, 1, 1, 'bien');
 
 /*!40103 SET TIME_ZONE=IFNULL(@OLD_TIME_ZONE, 'system') */;
 /*!40101 SET SQL_MODE=IFNULL(@OLD_SQL_MODE, '') */;
