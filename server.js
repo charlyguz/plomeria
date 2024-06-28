@@ -47,10 +47,7 @@ app.use(session({
   secret: process.env.SESSION_SECRET || 'yourSecretKey',
   resave: false,
   saveUninitialized: false,
-  cookie: {
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'None'  // Permite el uso de cookies en diferentes dominios
-  }
+  cookie: { secure: process.env.NODE_ENV === 'production' }
 }));
 
 // --- Helper Functions ---
@@ -120,8 +117,7 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-
-app.get('/api/test-db', { withCredentials: true }, async (req, res) => {
+app.get('/api/test-db', async (req, res) => {
   try {
     console.log('Connecting to the database...');
     const result = await pool.request().query('SELECT * FROM Persona');
@@ -196,7 +192,7 @@ app.post('/api/servicios', async (req, res) => {
 
 
 // Continuación del endpoint para obtener servicios
-app.get('/api/servicios', { withCredentials: true }, async (req, res) => {
+app.get('/api/servicios', async (req, res) => {
   try {
     if (!req.session.user || req.session.user.Rol !== 'Tecnico') {
       return res.status(401).json({ error: 'User not authenticated or not a technician' });
@@ -237,7 +233,7 @@ app.get('/api/servicios/:id/progreso', async (req, res) => {
   }
 });
 
-app.put('/api/servicios/:id', { withCredentials: true }, async (req, res) => {
+app.put('/api/servicios/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const { estado, calificacion } = req.body;
@@ -316,7 +312,7 @@ app.put('/api/servicios/:id/progreso', async (req, res) => {
 });
 
 // Get all technical people
-app.get('/api/tecnicos', { withCredentials: true }, async (req, res) => {
+app.get('/api/tecnicos', async (req, res) => {
   try {
     const result = await pool.request().query('SELECT * FROM Persona WHERE Rol = \'Tecnico\'');
 
@@ -414,7 +410,7 @@ app.get('/api/estadisticas', async (req, res) => {
 });
 
 // Endpoint para obtener servicios de un usuario en particular
-app.get('/api/servicios/:id_cliente', { withCredentials: true }, async (req, res) => {
+app.get('/api/servicios/:id_cliente', async (req, res) => {
   try {
     const { id_cliente } = req.params;
     const result = await pool.request()
@@ -431,7 +427,7 @@ app.get('/api/servicios/:id_cliente', { withCredentials: true }, async (req, res
 });
 
 // Endpoint para obtener la sesión del usuario
-app.get('/api/session', { withCredentials: true }, (req, res) => {
+app.get('/api/session', (req, res) => {
   if (req.session.user) {
     res.json({ user: req.session.user });
   } else {
@@ -478,4 +474,3 @@ app.post('/api/servicios/:id/materiales', async (req, res) => {
 app.listen(port, () => {
   console.log(`Server listening at http://localhost:${port}`);
 });
-
