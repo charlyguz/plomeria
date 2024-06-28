@@ -60,7 +60,7 @@ const RecursosHumanos = () => {
   useEffect(() => {
     const fetchTecnicos = async () => {
       try {
-        const response = await axios.get('plomeria-backend.azurewebsites.net/api/tecnicos', { withCredentials: true });
+        const response = await axios.get('https://plomeria-backend.azurewebsites.net/api/tecnicos', { withCredentials: true });
         setTecnicos(response.data);
         setLoading(false);
       } catch (err) {
@@ -96,7 +96,7 @@ const RecursosHumanos = () => {
     setFormErrors(errors);
     if (Object.keys(errors).length === 0) {
       try {
-        const response = await axios.post('plomeria-backend.azurewebsites.net/api/persona', {
+        const response = await axios.post('https://plomeria-backend.azurewebsites.net/api/persona', {
           ...formData,
           Rol: 'Tecnico'
         }, { withCredentials: true });
@@ -135,7 +135,7 @@ const RecursosHumanos = () => {
 
   const handleDeleteEmployee = async (employeeId) => {
     try {
-      await axios.delete(`plomeria-backend.azurewebsites.net/api/tecnicos/${employeeId}`, { withCredentials: true });
+      await axios.delete(`https://plomeria-backend.azurewebsites.net/api/tecnicos/${employeeId}`, { withCredentials: true });
       setTecnicos(tecnicos.filter(tecnico => tecnico.ID_Persona !== employeeId));
     } catch (err) {
       console.error('Error deleting technician:', err);

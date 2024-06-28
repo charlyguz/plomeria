@@ -29,7 +29,7 @@ const GraficoInventario = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await axios.get('plomeria-backend.azurewebsites.net/api/material', { withCredentials: true });
+        const response = await axios.get('https://plomeria-backend.azurewebsites.net/api/material', { withCredentials: true });
         const materiales = response.data;
 
         setData({

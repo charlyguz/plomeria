@@ -3,6 +3,7 @@ import {
   BellAlertIcon,
   UserCircleIcon,
   WrenchScrewdriverIcon,
+  BookmarkIcon,
 } from "@heroicons/react/24/solid";
 import axios from "axios";
 import { useNavigate } from 'react-router-dom';
@@ -102,7 +103,7 @@ const DashboardCliente = () => {
     setFormErrors(errors);
     if (Object.keys(errors).length === 0) {
       try {
-        const response = await axios.post('plomeria-backend.azurewebsites.net/api/servicios', {
+        const response = await axios.post('https://plomeria-backend.azurewebsites.net/api/servicios', {
           TipoServicio: formData.TipoServicio,
           Direccion: {
             Calle: formData.Calle,
@@ -149,7 +150,7 @@ const DashboardCliente = () => {
       return;
     }
     try {
-      const response = await axios.get(`plomeria-backend.azurewebsites.net/api/servicios/${sessionUser?.ID_Persona}`, { withCredentials: true });
+      const response = await axios.get(`https://plomeria-backend.azurewebsites.net/api/servicios/${sessionUser?.ID_Persona}`, { withCredentials: true });
       const currentService = response.data.find(servicio => servicio.Estado !== 'Completado' && servicio.Estado !== 'Pendiente');
       if (currentService) {
         alert("No puede solicitar más de un servicio a la vez");
@@ -177,7 +178,7 @@ const DashboardCliente = () => {
 
   const handleLogout = async () => {
     try {
-      await axios.post('plomeria-backend.azurewebsites.net/api/logout', {}, { withCredentials: true });
+      await axios.post('https://plomeria-backend.azurewebsites.net/api/logout', {}, { withCredentials: true });
       navigate('/login');
     } catch (error) {
       console.error('Error during logout:', error);
@@ -187,7 +188,7 @@ const DashboardCliente = () => {
   const handleCalificarTecnico = async () => {
     try {
       console.log('Calificando servicio:', servicioActual);
-      await axios.put(`plomeria-backend.azurewebsites.net/api/servicios/${servicioActual.ID_Servicio}`, {
+      await axios.put(`https://plomeria-backend.azurewebsites.net/api/servicios/${servicioActual.ID_Servicio}`, {
         estado: 'Completado',
         calificacion: calificacion
       }, {
@@ -219,7 +220,7 @@ const DashboardCliente = () => {
   const fetchServices = async () => {
     try {
       console.log(`Fetching services for user ${sessionUser?.ID_Persona}`);
-      const response = await axios.get(`plomeria-backend.azurewebsites.net/api/servicios/${sessionUser?.ID_Persona}`, { withCredentials: true });
+      const response = await axios.get(`https://plomeria-backend.azurewebsites.net/api/servicios/${sessionUser?.ID_Persona}`, { withCredentials: true });
       console.log('Servicios recibidos:', response.data);
       setServicios(response.data);
       setLoading(false);
@@ -239,7 +240,7 @@ const DashboardCliente = () => {
 
   const fetchSessionUser = async () => {
     try {
-      const response = await axios.get('plomeria-backend.azurewebsites.net/api/session', { withCredentials: true });
+      const response = await axios.get('https://plomeria-backend.azurewebsites.net/api/session', { withCredentials: true });
       console.log('Session user:', response.data.user);
       setSessionUser(response.data.user);
     } catch (error) {
@@ -268,13 +269,7 @@ const DashboardCliente = () => {
             onClick={handleSolicitarServicio}
           >
             <div className="bg-[#6E7AD9] p-4 rounded-full flex items-center justify-center">
-              <svg
-                className="h-8 w-8 text-white"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-              >
-                <path d="M2 3.5A2.5 2.5 0118 3.5V17a.5.5 01-.757.429L10 12.083 2.757 17.43A.5.5 012 17V3.5z" />
-              </svg>
+              <BookmarkIcon className="h-8 w-8 text-white"/>
             </div>
             <span>Solicitar Servicio</span>
           </button>

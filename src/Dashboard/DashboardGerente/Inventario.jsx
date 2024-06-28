@@ -11,7 +11,7 @@ const Inventario = () => {
   useEffect(() => {
     const fetchMateriales = async () => {
       try {
-        const response = await axios.get('plomeria-backend.azurewebsites.net/api/material', { withCredentials: true });
+        const response = await axios.get('https://plomeria-backend.azurewebsites.net/api/material', { withCredentials: true });
         setMateriales(response.data);
         setLoading(false);
       } catch (err) {
@@ -35,7 +35,7 @@ const Inventario = () => {
   const handleFormSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.put(`plomeria-backend.azurewebsites.net/api/material/${selectedMaterial}`, {
+      await axios.put(`https://plomeria-backend.azurewebsites.net/api/material/${selectedMaterial}`, {
         cantidad: parseInt(cantidad)
       }, { withCredentials: true });
 

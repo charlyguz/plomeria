@@ -23,7 +23,7 @@ const Register = () => {
     setErrors(errors);
     if (Object.keys(errors).length === 0) {
       try {
-        const response = await axios.post('plomeria-backend.azurewebsites.net/api/persona', {
+        const response = await axios.post('https://plomeria-backend.azurewebsites.net/api/persona', {
           CorreoElectronico: email,
           Contrasena: password,
           Rol: 'Cliente'

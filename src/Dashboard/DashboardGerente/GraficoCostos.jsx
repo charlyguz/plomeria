@@ -41,7 +41,7 @@ const GraficoCostos = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await axios.get('plomeria-backend.azurewebsites.net/api/estadisticas', { withCredentials: true });
+        const response = await axios.get('https://plomeria-backend.azurewebsites.net/api/estadisticas', { withCredentials: true });
         const { costosYBeneficios } = response.data;
 
         setData({

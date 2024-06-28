@@ -17,7 +17,7 @@ const GraficoBarras = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await axios.get('plomeria-backend.azurewebsites.net/api/estadisticas', { withCredentials: true });
+        const response = await axios.get('https://plomeria-backend.azurewebsites.net/api/estadisticas', { withCredentials: true });
         const estadisticas = response.data;
 
         setData({
