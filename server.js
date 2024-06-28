@@ -10,18 +10,28 @@ dotenv.config();
 const app = express();
 const port = process.env.PORT || 1433;
 
-// Configuración de la conexión a la base de datos
 const dbConfig = {
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   server: process.env.DB_HOST,
-  port: parseInt(process.env.DB_PORT, 10),  // Added port configuration
+  port: parseInt(process.env.DB_PORT, 10),
   database: process.env.DB_NAME,
   options: {
-    encrypt: true, // Use this option if you're on Azure
+    encrypt: true,
     enableArithAbort: true
   }
 };
+
+let pool;
+
+(async function initializeDatabaseConnection() {
+  try {
+    pool = await sql.connect(dbConfig);
+    console.log('Database connection established.');
+  } catch (err) {
+    console.error('Error connecting to the database:', err);
+  }
+})();
 
 app.use(cors({
   origin: 'http://localhost:5173',
@@ -40,14 +50,14 @@ app.use(session({
   cookie: { secure: process.env.NODE_ENV === 'production' }
 }));
 
-
 // --- Helper Functions ---
 async function hashPassword(password) {
-    const saltRounds = 10;
-    return await bcrypt.hash(password, saltRounds);
+  const saltRounds = 10;
+  return await bcrypt.hash(password, saltRounds);
 }
 
 // --- API Endpoints ---
+
 app.post('/api/persona', async (req, res) => {
   try {
     const { CorreoElectronico, Contrasena, Rol, Nombre } = req.body;
@@ -63,23 +73,62 @@ app.post('/api/persona', async (req, res) => {
     }
     const hashedPassword = await hashPassword(Contrasena);
 
-    const pool = await sql.connect(dbConfig);
     const result = await pool.request()
       .input('CorreoElectronico', sql.VarChar, CorreoElectronico)
       .input('Contrasena', sql.VarChar, hashedPassword)
       .input('Nombre', sql.VarChar, Nombre)
       .input('Rol', sql.VarChar, Rol)
       .query('INSERT INTO Persona (CorreoElectronico, Contrasena, Nombre, Rol) VALUES (@CorreoElectronico, @Contrasena, @Nombre, @Rol)');
-    
+
     res.json({ message: 'User registered successfully', userId: result.recordset[0].ID_Persona });
   } catch (err) {
-    console.error(err);
+    console.error('Error registering user:', err);
     res.status(500).json({ error: 'Registration failed' });
-  } finally {
-    sql.close();
   }
 });
 
+app.post('/api/login', async (req, res) => {
+  try {
+    const { CorreoElectronico, Contrasena } = req.body;
+    console.log('Attempting login for:', CorreoElectronico);
+
+    const rows = await pool.request()
+      .input('CorreoElectronico', sql.VarChar, CorreoElectronico)
+      .query('SELECT * FROM Persona WHERE CorreoElectronico = @CorreoElectronico');
+
+    console.log('Login query result:', rows.recordset);
+
+    if (rows.recordset.length > 0) {
+      const user = rows.recordset[0];
+      const isPasswordValid = await bcrypt.compare(Contrasena, user.Contrasena);
+
+      if (isPasswordValid) {
+        req.session.user = user;
+        res.json({ message: 'Login successful', user });
+      } else {
+        res.status(401).json({ error: 'Invalid credentials' });
+      }
+    } else {
+      res.status(401).json({ error: 'Invalid credentials' });
+    }
+  } catch (err) {
+    console.error('Error during login:', err);
+    res.status(500).json({ error: 'An error occurred during login' });
+  }
+});
+
+app.get('/api/test-db', async (req, res) => {
+  try {
+    console.log('Connecting to the database...');
+    const result = await pool.request().query('SELECT * FROM Persona');
+    console.log('Database connection established and data retrieved:', result.recordset);
+    //res.json({ message: 'Database connection successful', data: result.recordset });
+    res.json({ message: 'Database connection successful' });
+  } catch (err) {
+    console.error('Error connecting to the database:', err);
+    res.status(500).json({ error: 'Database connection failed', details: err.message });
+  }
+});
 
 app.post('/api/servicios', async (req, res) => {
   try {
@@ -89,11 +138,10 @@ app.post('/api/servicios', async (req, res) => {
       return res.status(401).json({ error: 'User not authenticated' });
     }
 
-    const pool = await sql.connect(dbConfig);
     const existingService = await pool.request()
       .input('ID_Cliente', sql.Int, req.session.user.ID_Persona)
       .query('SELECT * FROM Servicio WHERE ID_Cliente = @ID_Cliente AND Estado != \'Completado\'');
-    
+
     if (existingService.recordset.length > 0) {
       return res.status(400).json({ error: 'No puede solicitar más de un servicio a la vez' });
     }
@@ -139,13 +187,11 @@ app.post('/api/servicios', async (req, res) => {
   } catch (err) {
     console.error('Error adding Servicio:', err);
     res.status(500).json({ error: 'Failed to add Servicio' });
-  } finally {
-    sql.close();
   }
 });
 
 
-
+// Continuación del endpoint para obtener servicios
 app.get('/api/servicios', async (req, res) => {
   try {
     if (!req.session.user || req.session.user.Rol !== 'Tecnico') {
@@ -153,7 +199,6 @@ app.get('/api/servicios', async (req, res) => {
     }
 
     const tecnicoId = req.session.user.ID_Persona;
-    const pool = await sql.connect(dbConfig);
     const result = await pool.request()
       .input('ID_Tecnico', sql.Int, tecnicoId)
       .query(`
@@ -168,20 +213,17 @@ app.get('/api/servicios', async (req, res) => {
   } catch (err) {
     console.error('Error fetching services:', err);
     res.status(500).json({ error: 'Failed to fetch services' });
-  } finally {
-    sql.close();
   }
 });
-
 
 app.get('/api/servicios/:id/progreso', async (req, res) => {
   try {
     const { id } = req.params;
-    const conn = await pool.getConnection();
-    const rows = await conn.query('SELECT recogerMateriales, dirigirseDireccion, concluirTrabajo FROM Servicio WHERE ID_Servicio = ?', [id]);
-    conn.release();
-    if (rows.length > 0) {
-      res.json(rows[0]);
+    const result = await pool.request()
+      .input('ID_Servicio', sql.Int, id)
+      .query('SELECT recogerMateriales, dirigirseDireccion, concluirTrabajo FROM Servicio WHERE ID_Servicio = @ID_Servicio');
+    if (result.recordset.length > 0) {
+      res.json(result.recordset[0]);
     } else {
       res.status(404).json({ error: 'Servicio no encontrado' });
     }
@@ -196,35 +238,46 @@ app.put('/api/servicios/:id', async (req, res) => {
     const { id } = req.params;
     const { estado, calificacion } = req.body;
 
-    const conn = await pool.getConnection();
+    const result = await pool.request()
+      .input('ID_Servicio', sql.Int, id)
+      .query('SELECT recogerMateriales, dirigirseDireccion, concluirTrabajo, Calificacion, FechaCompletado FROM Servicio WHERE ID_Servicio = @ID_Servicio');
 
-    const [servicio] = await conn.query('SELECT recogerMateriales, dirigirseDireccion, concluirTrabajo, Calificacion, FechaCompletado FROM Servicio WHERE ID_Servicio = ?', [id]);
-
-    if (!servicio) {
-      conn.release();
+    if (result.recordset.length === 0) {
       return res.status(404).json({ error: 'Servicio no encontrado' });
     }
 
-    const { recogerMateriales, dirigirseDireccion, concluirTrabajo, Calificacion, FechaCompletado } = servicio;
+    const { recogerMateriales, dirigirseDireccion, concluirTrabajo, Calificacion, FechaCompletado } = result.recordset[0];
 
     if (estado) {
-      await conn.query('UPDATE Servicio SET Estado = ? WHERE ID_Servicio = ?', [estado, id]);
+      await pool.request()
+        .input('Estado', sql.VarChar, estado)
+        .input('ID_Servicio', sql.Int, id)
+        .query('UPDATE Servicio SET Estado = @Estado WHERE ID_Servicio = @ID_Servicio');
       if (estado === 'Esperando Calificación') {
-        const tecnicoIdResult = await conn.query('SELECT ID_Tecnico FROM Servicio WHERE ID_Servicio = ?', [id]);
-        const tecnicoId = tecnicoIdResult[0].ID_Tecnico;
+        const tecnicoIdResult = await pool.request()
+          .input('ID_Servicio', sql.Int, id)
+          .query('SELECT ID_Tecnico FROM Servicio WHERE ID_Servicio = @ID_Servicio');
+        const tecnicoId = tecnicoIdResult.recordset[0].ID_Tecnico;
 
-        await conn.query('UPDATE Persona SET Disponible = 1 WHERE ID_Persona = ?', [tecnicoId]);
+        await pool.request()
+          .input('ID_Persona', sql.Int, tecnicoId)
+          .query('UPDATE Persona SET Disponible = 1 WHERE ID_Persona = @ID_Persona');
       } else if (estado === 'Completado') {
         const fechaCompletado = new Date().toISOString().slice(0, 19).replace('T', ' ');
-        await conn.query('UPDATE Servicio SET FechaCompletado = ? WHERE ID_Servicio = ?', [fechaCompletado, id]);
+        await pool.request()
+          .input('FechaCompletado', sql.DateTime, fechaCompletado)
+          .input('ID_Servicio', sql.Int, id)
+          .query('UPDATE Servicio SET FechaCompletado = @FechaCompletado WHERE ID_Servicio = @ID_Servicio');
       }
     }
 
     if (calificacion) {
-      await conn.query('UPDATE Servicio SET Calificacion = ? WHERE ID_Servicio = ?', [calificacion, id]);
+      await pool.request()
+        .input('Calificacion', sql.Int, calificacion)
+        .input('ID_Servicio', sql.Int, id)
+        .query('UPDATE Servicio SET Calificacion = @Calificacion WHERE ID_Servicio = @ID_Servicio');
     }
 
-    conn.release();
     res.json({ message: 'Servicio updated successfully' });
   } catch (err) {
     console.error('Error updating Servicio:', err);
@@ -237,7 +290,6 @@ app.put('/api/servicios/:id/progreso', async (req, res) => {
     const { id } = req.params;
     const { recogerMateriales, dirigirseDireccion, concluirTrabajo } = req.body;
 
-    const pool = await sql.connect(dbConfig);
     const query = `
       UPDATE Servicio 
       SET recogerMateriales = ISNULL(@recogerMateriales, recogerMateriales), 
@@ -256,104 +308,45 @@ app.put('/api/servicios/:id/progreso', async (req, res) => {
   } catch (err) {
     console.error('Error actualizando progreso del servicio:', err);
     res.status(500).json({ error: 'Failed to update progress' });
-  } finally {
-    sql.close();
   }
 });
-
 
 // Get all technical people
 app.get('/api/tecnicos', async (req, res) => {
   try {
-    const pool = await sql.connect(dbConfig);
     const result = await pool.request().query('SELECT * FROM Persona WHERE Rol = \'Tecnico\'');
 
     res.json(result.recordset);
   } catch (err) {
     console.error('Error fetching technicians:', err);
     res.status(500).json({ error: 'Failed to fetch technicians' });
-  } finally {
-    sql.close();
   }
 });
-
 
 // Get all material
 app.get('/api/material', async (req, res) => {
   try {
-    const pool = await sql.connect(dbConfig);
     const result = await pool.request().query('SELECT * FROM Material');
 
     res.json(result.recordset);
   } catch (err) {
     console.error('Error fetching material:', err);
     res.status(500).json({ error: 'Failed to fetch material' });
-  } finally {
-    sql.close();
   }
 });
-
 
 function calculateCostoTotal(tipoServicio) {
-    const costosBase = {
-      'Mantenimiento preventivo y lavado de tinacos': 500,
-      'Reparación de fuga de agua': 800,
-      'Instalación de calentador de agua': 1200
-    };
-  
-    const costoBase = costosBase[tipoServicio] || 0;
-    const iva = costoBase * 0.16;
-    return costoBase + iva;
+  const costosBase = {
+    'Mantenimiento preventivo y lavado de tinacos': 500,
+    'Reparación de fuga de agua': 800,
+    'Instalación de calentador de agua': 1200
+  };
+
+  const costoBase = costosBase[tipoServicio] || 0;
+  const iva = costoBase * 0.16;
+  return costoBase + iva;
 }
 
-// Endpoint de prueba de conexión a la base de datos
-app.get('/api/test-db', async (req, res) => {
-  let pool;
-  try {
-    console.log('Connecting to the database...');
-    pool = await sql.connect(dbConfig);
-    console.log('Database connection established.');
-    const result = await pool.request().query('SELECT 1 as val');
-    res.json({ message: 'Database connection successful', result: result.recordset });
-  } catch (err) {
-    console.error('Error connecting to the database:', err);
-    res.status(500).json({ error: 'Database connection failed', details: err.message });
-  } finally {
-    if (pool) {
-      pool.close();
-    }
-  }
-});
-
-
-
-// Endpoint para login
-// Endpoint para login
-app.post('/api/login', async (req, res) => {
-  try {
-    const { CorreoElectronico, Contrasena } = req.body;
-    const conn = await pool.getConnection();
-    const rows = await conn.query('SELECT * FROM Persona WHERE CorreoElectronico = ?', [CorreoElectronico]);
-    conn.release();
-
-    if (rows.length > 0) {
-      const user = rows[0];
-      const isPasswordValid = await bcrypt.compare(Contrasena, user.Contrasena);
-
-      if (isPasswordValid) {
-        req.session.user = user;
-        res.json({ message: 'Login successful', user });
-      } else {
-        res.status(401).json({ error: 'Invalid credentials' });
-      }
-    } else {
-      res.status(401).json({ error: 'Invalid credentials' });
-    }
-  } catch (err) {
-    console.error('Error during login:', err);
-    res.status(500).json({ error: 'An error occurred during login' });
-  }
-});
 
 
 
@@ -368,46 +361,10 @@ app.post('/api/logout', (req, res) => {
   });
 });
 
-app.delete('/api/tecnicos/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const conn = await pool.getConnection();
 
-    // Primero eliminar cualquier servicio asignado a este técnico
-    await conn.query('DELETE FROM Servicio WHERE ID_Tecnico = ?', [id]);
-
-    // Luego eliminar el técnico de la tabla Persona
-    await conn.query('DELETE FROM Persona WHERE ID_Persona = ?', [id]);
-
-    conn.release();
-    res.json({ message: 'Técnico eliminado exitosamente' });
-  } catch (err) {
-    console.error('Error deleting technician:', err);
-    res.status(500).json({ error: 'Failed to delete technician' });
-  }
-});
-
-app.put('/api/material/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { cantidad } = req.body;
-
-    const conn = await pool.getConnection();
-    await conn.query('UPDATE Material SET CantidadDisponible = CantidadDisponible + ? WHERE ID_Material = ?', [cantidad, id]);
-    conn.release();
-
-    res.json({ message: 'Material updated successfully' });
-  } catch (err) {
-    console.error('Error updating material:', err);
-    res.status(500).json({ error: 'Failed to update material' });
-  }
-});
-
-// Endpoint para obtener estadísticas
+// Continuación del endpoint para obtener estadísticas
 app.get('/api/estadisticas', async (req, res) => {
   try {
-    const pool = await sql.connect(dbConfig);
-
     const totalSolicitados = await pool.request().query('SELECT COUNT(*) as total FROM Servicio');
     const totalCompletados = await pool.request().query('SELECT COUNT(*) as total FROM Servicio WHERE FechaCompletado IS NOT NULL');
     const tiempoPromedioRespuesta = await pool.request().query('SELECT AVG(DATEDIFF(HOUR, FechaSolicitud, FechaSolicitud)) as promedio FROM Servicio');
@@ -449,23 +406,13 @@ app.get('/api/estadisticas', async (req, res) => {
   } catch (err) {
     console.error('Error fetching statistics:', err);
     res.status(500).json({ error: 'Failed to fetch statistics' });
-  } finally {
-    sql.close();
   }
 });
-
-
-
-
-
-
-
 
 // Endpoint para obtener servicios de un usuario en particular
 app.get('/api/servicios/:id_cliente', async (req, res) => {
   try {
     const { id_cliente } = req.params;
-    const pool = await sql.connect(dbConfig);
     const result = await pool.request()
       .input('ID_Cliente', sql.Int, id_cliente)
       .query(`
@@ -476,12 +423,10 @@ app.get('/api/servicios/:id_cliente', async (req, res) => {
   } catch (err) {
     console.error('Error fetching services:', err);
     res.status(500).json({ error: 'Failed to fetch services' });
-  } finally {
-    sql.close();
   }
 });
 
-
+// Endpoint para obtener la sesión del usuario
 app.get('/api/session', (req, res) => {
   if (req.session.user) {
     res.json({ user: req.session.user });
@@ -490,31 +435,35 @@ app.get('/api/session', (req, res) => {
   }
 });
 
-
+// Endpoint para actualizar materiales en un servicio
 app.post('/api/servicios/:id/materiales', async (req, res) => {
   try {
     const { id } = req.params;
     const { materiales } = req.body;
 
-    const conn = await pool.getConnection();
-
     for (const material of materiales) {
       // Insertar o actualizar el detalle del servicio y material
-      await conn.query(`
-        INSERT INTO detalleserviciomaterial (ID_Servicio, ID_Material, CantidadUtilizada) 
-        VALUES (?, ?, ?)
-        ON DUPLICATE KEY UPDATE CantidadUtilizada = CantidadUtilizada + ?
-      `, [id, material.ID_Material, material.CantidadUtilizada, material.CantidadUtilizada]);
+      await pool.request()
+        .input('ID_Servicio', sql.Int, id)
+        .input('ID_Material', sql.Int, material.ID_Material)
+        .input('CantidadUtilizada', sql.Int, material.CantidadUtilizada)
+        .query(`
+          INSERT INTO DetalleServicioMaterial (ID_Servicio, ID_Material, CantidadUtilizada) 
+          VALUES (@ID_Servicio, @ID_Material, @CantidadUtilizada)
+          ON DUPLICATE KEY UPDATE CantidadUtilizada = CantidadUtilizada + @CantidadUtilizada
+        `);
 
       // Actualizar la cantidad disponible de material en el inventario
-      await conn.query(`
-        UPDATE material 
-        SET CantidadDisponible = CantidadDisponible - ? 
-        WHERE ID_Material = ?
-      `, [material.CantidadUtilizada, material.ID_Material]);
+      await pool.request()
+        .input('ID_Material', sql.Int, material.ID_Material)
+        .input('CantidadUtilizada', sql.Int, material.CantidadUtilizada)
+        .query(`
+          UPDATE Material 
+          SET CantidadDisponible = CantidadDisponible - @CantidadUtilizada 
+          WHERE ID_Material = @ID_Material
+        `);
     }
 
-    conn.release();
     res.json({ message: 'Materiales actualizados correctamente' });
   } catch (err) {
     console.error('Error actualizando materiales:', err);
@@ -522,8 +471,7 @@ app.post('/api/servicios/:id/materiales', async (req, res) => {
   }
 });
 
-
-
 app.listen(port, () => {
-    console.log(`Server listening at http://localhost:${port}`);
+  console.log(`Server listening at http://localhost:${port}`);
 });
+
